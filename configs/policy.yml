@@ -12,13 +12,13 @@ features:
     weight: 1
     threshold: 5
   dwell_time_avg:
-    weight: 3
+    weight: 2.5
     threshold: 950
   timing_variance:
-    weight: 3.5
+    weight: 4.5
     threshold: 0.4
   asset_warmup_missing:
-    weight: 5
+    weight: 6
 actions:
   allow:
     max_score: 2
