@@ -6,13 +6,13 @@ features:
     weight: 2.3
     threshold: 28
   pagination_ratio:
-    weight: 0.5
+    weight: 0.3
     threshold: 0.6
   session_depth:
     weight: 1
     threshold: 5
   dwell_time_avg:
-    weight: 2.5
+    weight: 1.5
     threshold: 800
   timing_variance:
     weight: 5
