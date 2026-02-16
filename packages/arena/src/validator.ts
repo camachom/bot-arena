@@ -21,6 +21,7 @@ export interface ValidatorConfig {
   profilePaths: string[];
   sessionsPerProfile?: number;
   port?: number;
+  fast?: boolean;
 }
 
 function deepMerge<T extends object>(target: T, source: Partial<T>): T {
@@ -67,6 +68,7 @@ export async function validateRedProposal(
       profilePaths: config.profilePaths,
       sessionsPerProfile: config.sessionsPerProfile,
       port: (config.port || 3000) + 1, // Use different port for validation
+      fast: config.fast,
     };
 
     const { metrics: afterMetrics } = await runTournament(
@@ -141,6 +143,7 @@ export async function validateBlueProposal(
       profilePaths: config.profilePaths,
       sessionsPerProfile: config.sessionsPerProfile,
       port: (config.port || 3000) + 2, // Use different port for validation
+      fast: config.fast,
     };
 
     const { metrics: afterMetrics } = await runTournament(

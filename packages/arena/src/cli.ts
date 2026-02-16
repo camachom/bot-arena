@@ -164,6 +164,7 @@ program
         profilePaths,
         sessionsPerProfile: sessions,
         port,
+        fast,
       };
 
       if (redProposal && hasChanges(redProposal.changes)) {
