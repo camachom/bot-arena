@@ -11,5 +11,8 @@
     "max_depth_per_session": 3,
     "rotate_sessions": true
   },
-  "jitter_ms": [500, 2000]
+  "jitter_ms": [
+    500,
+    2000
+  ]
 }
