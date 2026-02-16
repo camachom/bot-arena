@@ -1,5 +1,5 @@
 {
-  "currentFightNumber": 2,
+  "currentFightNumber": 3,
   "reports": [
     {
       "fightNumber": 1,
@@ -3434,6 +3434,1410 @@
       },
       "winner": "red",
       "winReason": "92% extraction"
+    },
+    {
+      "fightNumber": 3,
+      "roundNumber": 1,
+      "timestamp": "2026-02-16T16:24:22.949Z",
+      "metrics": {
+        "fightNumber": 3,
+        "roundNumber": 1,
+        "timestamp": "2026-02-16T16:24:22.949Z",
+        "profiles": [
+          {
+            "profileType": "human",
+            "isBot": false,
+            "sessions": 10,
+            "totalRequests": 22,
+            "successfulExtractions": 22,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 0,
+            "extractionRate": 1,
+            "avgScore": 2.563636363636365,
+            "avgDwellTime": 2603.358333333333
+          },
+          {
+            "profileType": "naive",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 26,
+            "successfulExtractions": 20,
+            "blockedRequests": 6,
+            "throttledRequests": 0,
+            "challengedRequests": 0,
+            "extractionRate": 0.7692307692307693,
+            "avgScore": 2.1230769230769235,
+            "avgDwellTime": 5450.966666666667
+          },
+          {
+            "profileType": "moderate",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 31,
+            "successfulExtractions": 31,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 10,
+            "extractionRate": 1,
+            "avgScore": 3.700000000000002,
+            "avgDwellTime": 6124.673333333333
+          },
+          {
+            "profileType": "aggressive",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 30,
+            "successfulExtractions": 30,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 10,
+            "extractionRate": 1,
+            "avgScore": 3.700000000000002,
+            "avgDwellTime": 5998.516666666667
+          }
+        ],
+        "humanSuccessRate": 1,
+        "falsePositiveRate": 0,
+        "botSuppressionRate": 0.06896551724137934,
+        "botExtractionRate": 0.9310344827586207
+      },
+      "blueProposal": {
+        "changes": {
+          "features": {
+            "asset_warmup_missing": {
+              "weight": 4.5
+            },
+            "dwell_time_avg": {
+              "weight": 2.8,
+              "threshold": 1800
+            }
+          }
+        },
+        "reasoning": "The current suppression rate of 6.9% is very low. Looking at the profile scores: humans average 2.56 (safe margin from action thresholds), while bots score 2.12-3.70. The most successful previous attempt lowered the block threshold to 3, achieving 75% suppression with 0% FPR. Since that's no longer available, I'm focusing on the two most reliable bot detection features: asset_warmup_missing (headless browsers don't load CSS/JS) and dwell_time_avg (bots have unnaturally consistent timing). Increasing asset_warmup_missing weight to 4.5 and dwell_time_avg weight to 2.8, while lowering the dwell_time threshold to 1800ms to catch more bot-like timing patterns. This should push more bots above the scoring thresholds while keeping humans safe."
+      },
+      "blueValidation": {
+        "accepted": true,
+        "reason": "Suppression improved from 6.9% to 10.3%, FPR: 0.0%",
+        "beforeMetrics": {
+          "fightNumber": 3,
+          "roundNumber": 1,
+          "timestamp": "2026-02-16T16:24:22.949Z",
+          "profiles": [
+            {
+              "profileType": "human",
+              "isBot": false,
+              "sessions": 10,
+              "totalRequests": 22,
+              "successfulExtractions": 22,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 1,
+              "avgScore": 2.563636363636365,
+              "avgDwellTime": 2603.358333333333
+            },
+            {
+              "profileType": "naive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 26,
+              "successfulExtractions": 20,
+              "blockedRequests": 6,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.7692307692307693,
+              "avgScore": 2.1230769230769235,
+              "avgDwellTime": 5450.966666666667
+            },
+            {
+              "profileType": "moderate",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 31,
+              "successfulExtractions": 31,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 3.700000000000002,
+              "avgDwellTime": 6124.673333333333
+            },
+            {
+              "profileType": "aggressive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 30,
+              "successfulExtractions": 30,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 3.700000000000002,
+              "avgDwellTime": 5998.516666666667
+            }
+          ],
+          "humanSuccessRate": 1,
+          "falsePositiveRate": 0,
+          "botSuppressionRate": 0.06896551724137934,
+          "botExtractionRate": 0.9310344827586207
+        },
+        "afterMetrics": {
+          "fightNumber": 0,
+          "roundNumber": 1,
+          "timestamp": "2026-02-16T16:24:53.133Z",
+          "profiles": [
+            {
+              "profileType": "human",
+              "isBot": false,
+              "sessions": 10,
+              "totalRequests": 18,
+              "successfulExtractions": 18,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 1,
+              "avgScore": 2.4444444444444446,
+              "avgDwellTime": 1981.6666666666665
+            },
+            {
+              "profileType": "naive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 29,
+              "successfulExtractions": 20,
+              "blockedRequests": 9,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.6896551724137931,
+              "avgScore": 2.5965517241379326,
+              "avgDwellTime": 4943.25
+            },
+            {
+              "profileType": "moderate",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 28,
+              "successfulExtractions": 28,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 4,
+              "avgDwellTime": 5626.550000000001
+            },
+            {
+              "profileType": "aggressive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 30,
+              "successfulExtractions": 30,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 4,
+              "avgDwellTime": 5813.341666666666
+            }
+          ],
+          "humanSuccessRate": 1,
+          "falsePositiveRate": 0,
+          "botSuppressionRate": 0.10344827586206895,
+          "botExtractionRate": 0.896551724137931
+        },
+        "improvement": {
+          "metric": "botSuppressionRate",
+          "before": 0.06896551724137934,
+          "after": 0.10344827586206895,
+          "delta": 0.03448275862068961
+        }
+      },
+      "attackProfile": {
+        "mode": "headed",
+        "concurrency": 2,
+        "requests_per_minute": 20,
+        "warmup": true,
+        "query_strategy": {
+          "type": "random",
+          "edit_distance_max": 2
+        },
+        "pagination": {
+          "max_depth_per_session": 4,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2000,
+          6000
+        ]
+      },
+      "policy": {
+        "features": {
+          "reqs_per_min": {
+            "weight": 1.5,
+            "threshold": 20
+          },
+          "unique_queries_per_hour": {
+            "weight": 2,
+            "threshold": 30
+          },
+          "pagination_ratio": {
+            "weight": 1.2,
+            "threshold": 0.6
+          },
+          "session_depth": {
+            "weight": 1,
+            "threshold": 5
+          },
+          "dwell_time_avg": {
+            "weight": 2.8,
+            "threshold": 1800
+          },
+          "asset_warmup_missing": {
+            "weight": 4.5
+          }
+        },
+        "actions": {
+          "allow": {
+            "max_score": 2
+          },
+          "throttle": {
+            "max_score": 3
+          },
+          "challenge": {
+            "max_score": 4
+          },
+          "block": {
+            "max_score": 5
+          }
+        },
+        "constraints": {
+          "max_false_positive_rate": 0.01
+        }
+      },
+      "winner": "red",
+      "winReason": "93% extraction"
+    },
+    {
+      "fightNumber": 3,
+      "roundNumber": 2,
+      "timestamp": "2026-02-16T16:25:22.961Z",
+      "metrics": {
+        "fightNumber": 3,
+        "roundNumber": 2,
+        "timestamp": "2026-02-16T16:25:22.961Z",
+        "profiles": [
+          {
+            "profileType": "human",
+            "isBot": false,
+            "sessions": 10,
+            "totalRequests": 18,
+            "successfulExtractions": 18,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 0,
+            "extractionRate": 1,
+            "avgScore": 2.4444444444444446,
+            "avgDwellTime": 1955.8166666666664
+          },
+          {
+            "profileType": "naive",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 27,
+            "successfulExtractions": 20,
+            "blockedRequests": 7,
+            "throttledRequests": 0,
+            "challengedRequests": 0,
+            "extractionRate": 0.7407407407407407,
+            "avgScore": 2.366666666666668,
+            "avgDwellTime": 5115.416666666667
+          },
+          {
+            "profileType": "moderate",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 32,
+            "successfulExtractions": 32,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 10,
+            "extractionRate": 1,
+            "avgScore": 4,
+            "avgDwellTime": 5803.7733333333335
+          },
+          {
+            "profileType": "aggressive",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 36,
+            "successfulExtractions": 36,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 10,
+            "extractionRate": 1,
+            "avgScore": 4,
+            "avgDwellTime": 5404.883333333333
+          }
+        ],
+        "humanSuccessRate": 1,
+        "falsePositiveRate": 0,
+        "botSuppressionRate": 0.0736842105263158,
+        "botExtractionRate": 0.9263157894736842
+      },
+      "blueProposal": {
+        "changes": {
+          "actions": {
+            "allow": {
+              "max_score": 1.8
+            },
+            "throttle": {
+              "max_score": 2.8
+            },
+            "challenge": {
+              "max_score": 3.8
+            },
+            "block": {
+              "max_score": 4.8
+            }
+          }
+        },
+        "reasoning": "Looking at the profile breakdown, humans average 2.44 while moderate/aggressive bots score 4.00. The current action thresholds are too lenient - everything below 5 is allowed/throttled/challenged but not blocked. By lowering all thresholds proportionally (allow at 1.8, throttle at 2.8, challenge at 3.8, block at 4.8), we can catch the moderate/aggressive bots scoring 4.00 while keeping humans at 2.44 in the allow/throttle range. This targets the score gap between humans and higher-scoring bots without changing feature weights."
+      },
+      "blueValidation": {
+        "accepted": false,
+        "reason": "FPR constraint violated: 40.0% > 5%",
+        "beforeMetrics": {
+          "fightNumber": 3,
+          "roundNumber": 2,
+          "timestamp": "2026-02-16T16:25:22.961Z",
+          "profiles": [
+            {
+              "profileType": "human",
+              "isBot": false,
+              "sessions": 10,
+              "totalRequests": 18,
+              "successfulExtractions": 18,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 1,
+              "avgScore": 2.4444444444444446,
+              "avgDwellTime": 1955.8166666666664
+            },
+            {
+              "profileType": "naive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 27,
+              "successfulExtractions": 20,
+              "blockedRequests": 7,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.7407407407407407,
+              "avgScore": 2.366666666666668,
+              "avgDwellTime": 5115.416666666667
+            },
+            {
+              "profileType": "moderate",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 32,
+              "successfulExtractions": 32,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 4,
+              "avgDwellTime": 5803.7733333333335
+            },
+            {
+              "profileType": "aggressive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 36,
+              "successfulExtractions": 36,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 4,
+              "avgDwellTime": 5404.883333333333
+            }
+          ],
+          "humanSuccessRate": 1,
+          "falsePositiveRate": 0,
+          "botSuppressionRate": 0.0736842105263158,
+          "botExtractionRate": 0.9263157894736842
+        },
+        "afterMetrics": {
+          "fightNumber": 0,
+          "roundNumber": 2,
+          "timestamp": "2026-02-16T16:25:45.399Z",
+          "profiles": [
+            {
+              "profileType": "human",
+              "isBot": false,
+              "sessions": 10,
+              "totalRequests": 23,
+              "successfulExtractions": 10,
+              "blockedRequests": 4,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.43478260869565216,
+              "avgScore": 2.7826086956521747,
+              "avgDwellTime": 1780.06
+            },
+            {
+              "profileType": "naive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 24,
+              "successfulExtractions": 18,
+              "blockedRequests": 6,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.75,
+              "avgScore": 2.325000000000001,
+              "avgDwellTime": 5552.783333333333
+            },
+            {
+              "profileType": "moderate",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 10,
+              "successfulExtractions": 0,
+              "blockedRequests": 10,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0,
+              "avgScore": 4,
+              "avgDwellTime": 6776.6
+            },
+            {
+              "profileType": "aggressive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 10,
+              "successfulExtractions": 0,
+              "blockedRequests": 10,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0,
+              "avgScore": 4,
+              "avgDwellTime": 7125.4
+            }
+          ],
+          "humanSuccessRate": 0.6,
+          "falsePositiveRate": 0.4,
+          "botSuppressionRate": 0.5909090909090908,
+          "botExtractionRate": 0.4090909090909091
+        }
+      },
+      "attackProfile": {
+        "mode": "headed",
+        "concurrency": 2,
+        "requests_per_minute": 20,
+        "warmup": true,
+        "query_strategy": {
+          "type": "random",
+          "edit_distance_max": 2
+        },
+        "pagination": {
+          "max_depth_per_session": 4,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2000,
+          6000
+        ]
+      },
+      "policy": {
+        "features": {
+          "reqs_per_min": {
+            "weight": 1.5,
+            "threshold": 20
+          },
+          "unique_queries_per_hour": {
+            "weight": 2,
+            "threshold": 30
+          },
+          "pagination_ratio": {
+            "weight": 1.2,
+            "threshold": 0.6
+          },
+          "session_depth": {
+            "weight": 1,
+            "threshold": 5
+          },
+          "dwell_time_avg": {
+            "weight": 2.8,
+            "threshold": 1800
+          },
+          "asset_warmup_missing": {
+            "weight": 4.5
+          }
+        },
+        "actions": {
+          "allow": {
+            "max_score": 2
+          },
+          "throttle": {
+            "max_score": 3
+          },
+          "challenge": {
+            "max_score": 4
+          },
+          "block": {
+            "max_score": 5
+          }
+        },
+        "constraints": {
+          "max_false_positive_rate": 0.01
+        }
+      },
+      "winner": "red",
+      "winReason": "93% extraction"
+    },
+    {
+      "fightNumber": 3,
+      "roundNumber": 3,
+      "timestamp": "2026-02-16T16:26:17.888Z",
+      "metrics": {
+        "fightNumber": 3,
+        "roundNumber": 3,
+        "timestamp": "2026-02-16T16:26:17.888Z",
+        "profiles": [
+          {
+            "profileType": "human",
+            "isBot": false,
+            "sessions": 10,
+            "totalRequests": 21,
+            "successfulExtractions": 21,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 0,
+            "extractionRate": 1,
+            "avgScore": 2.666666666666667,
+            "avgDwellTime": 1708.3
+          },
+          {
+            "profileType": "naive",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 27,
+            "successfulExtractions": 20,
+            "blockedRequests": 7,
+            "throttledRequests": 0,
+            "challengedRequests": 0,
+            "extractionRate": 0.7407407407407407,
+            "avgScore": 2.3666666666666676,
+            "avgDwellTime": 5172.55
+          },
+          {
+            "profileType": "moderate",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 32,
+            "successfulExtractions": 32,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 10,
+            "extractionRate": 1,
+            "avgScore": 4,
+            "avgDwellTime": 5249.333333333334
+          },
+          {
+            "profileType": "aggressive",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 31,
+            "successfulExtractions": 31,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 10,
+            "extractionRate": 1,
+            "avgScore": 4,
+            "avgDwellTime": 5427.8150000000005
+          }
+        ],
+        "humanSuccessRate": 1,
+        "falsePositiveRate": 0,
+        "botSuppressionRate": 0.07777777777777772,
+        "botExtractionRate": 0.9222222222222223
+      },
+      "blueProposal": {
+        "changes": {
+          "features": {
+            "reqs_per_min": {
+              "weight": 2,
+              "threshold": 18
+            },
+            "unique_queries_per_hour": {
+              "weight": 2.3,
+              "threshold": 28
+            }
+          }
+        },
+        "reasoning": "The current bot suppression is only 7.8% with humans averaging 2.67. Looking at the profile breakdown, naive bots (2.37 avg) are getting through easily, while moderate/aggressive bots (4.00 avg) are also passing. I'm targeting features that can distinguish bots from humans: increasing reqs_per_min weight to 2.0 and threshold to 18 (bots make more requests), and unique_queries_per_hour weight to 2.3 with threshold to 28 (bots search more). These modest increases should catch more bots without pushing human scores (currently 2.67) over the action thresholds."
+      },
+      "blueValidation": {
+        "accepted": true,
+        "reason": "Suppression improved from 7.8% to 8.5%, FPR: 0.0%",
+        "beforeMetrics": {
+          "fightNumber": 3,
+          "roundNumber": 3,
+          "timestamp": "2026-02-16T16:26:17.888Z",
+          "profiles": [
+            {
+              "profileType": "human",
+              "isBot": false,
+              "sessions": 10,
+              "totalRequests": 21,
+              "successfulExtractions": 21,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 1,
+              "avgScore": 2.666666666666667,
+              "avgDwellTime": 1708.3
+            },
+            {
+              "profileType": "naive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 27,
+              "successfulExtractions": 20,
+              "blockedRequests": 7,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.7407407407407407,
+              "avgScore": 2.3666666666666676,
+              "avgDwellTime": 5172.55
+            },
+            {
+              "profileType": "moderate",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 32,
+              "successfulExtractions": 32,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 4,
+              "avgDwellTime": 5249.333333333334
+            },
+            {
+              "profileType": "aggressive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 31,
+              "successfulExtractions": 31,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 4,
+              "avgDwellTime": 5427.8150000000005
+            }
+          ],
+          "humanSuccessRate": 1,
+          "falsePositiveRate": 0,
+          "botSuppressionRate": 0.07777777777777772,
+          "botExtractionRate": 0.9222222222222223
+        },
+        "afterMetrics": {
+          "fightNumber": 0,
+          "roundNumber": 3,
+          "timestamp": "2026-02-16T16:26:47.117Z",
+          "profiles": [
+            {
+              "profileType": "human",
+              "isBot": false,
+              "sessions": 10,
+              "totalRequests": 22,
+              "successfulExtractions": 22,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 1,
+              "avgScore": 2.727272727272728,
+              "avgDwellTime": 1732.35
+            },
+            {
+              "profileType": "naive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 27,
+              "successfulExtractions": 20,
+              "blockedRequests": 7,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.7407407407407407,
+              "avgScore": 2.3666666666666676,
+              "avgDwellTime": 4743.25
+            },
+            {
+              "profileType": "moderate",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 26,
+              "successfulExtractions": 26,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 4,
+              "avgDwellTime": 5744.083333333333
+            },
+            {
+              "profileType": "aggressive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 29,
+              "successfulExtractions": 29,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 4,
+              "avgDwellTime": 5663.375
+            }
+          ],
+          "humanSuccessRate": 1,
+          "falsePositiveRate": 0,
+          "botSuppressionRate": 0.08536585365853655,
+          "botExtractionRate": 0.9146341463414634
+        },
+        "improvement": {
+          "metric": "botSuppressionRate",
+          "before": 0.07777777777777772,
+          "after": 0.08536585365853655,
+          "delta": 0.007588075880758827
+        }
+      },
+      "attackProfile": {
+        "mode": "headed",
+        "concurrency": 2,
+        "requests_per_minute": 20,
+        "warmup": true,
+        "query_strategy": {
+          "type": "random",
+          "edit_distance_max": 2
+        },
+        "pagination": {
+          "max_depth_per_session": 4,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2000,
+          6000
+        ]
+      },
+      "policy": {
+        "features": {
+          "reqs_per_min": {
+            "weight": 2,
+            "threshold": 18
+          },
+          "unique_queries_per_hour": {
+            "weight": 2.3,
+            "threshold": 28
+          },
+          "pagination_ratio": {
+            "weight": 1.2,
+            "threshold": 0.6
+          },
+          "session_depth": {
+            "weight": 1,
+            "threshold": 5
+          },
+          "dwell_time_avg": {
+            "weight": 2.8,
+            "threshold": 1800
+          },
+          "asset_warmup_missing": {
+            "weight": 4.5
+          }
+        },
+        "actions": {
+          "allow": {
+            "max_score": 2
+          },
+          "throttle": {
+            "max_score": 3
+          },
+          "challenge": {
+            "max_score": 4
+          },
+          "block": {
+            "max_score": 5
+          }
+        },
+        "constraints": {
+          "max_false_positive_rate": 0.01
+        }
+      },
+      "winner": "red",
+      "winReason": "92% extraction"
+    },
+    {
+      "fightNumber": 3,
+      "roundNumber": 4,
+      "timestamp": "2026-02-16T16:27:13.603Z",
+      "metrics": {
+        "fightNumber": 3,
+        "roundNumber": 4,
+        "timestamp": "2026-02-16T16:27:13.603Z",
+        "profiles": [
+          {
+            "profileType": "human",
+            "isBot": false,
+            "sessions": 10,
+            "totalRequests": 25,
+            "successfulExtractions": 25,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 0,
+            "extractionRate": 1,
+            "avgScore": 2.880000000000001,
+            "avgDwellTime": 1616.7333333333333
+          },
+          {
+            "profileType": "naive",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 28,
+            "successfulExtractions": 19,
+            "blockedRequests": 9,
+            "throttledRequests": 0,
+            "challengedRequests": 0,
+            "extractionRate": 0.6785714285714286,
+            "avgScore": 2.6464285714285727,
+            "avgDwellTime": 5036.1
+          },
+          {
+            "profileType": "moderate",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 32,
+            "successfulExtractions": 32,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 10,
+            "extractionRate": 1,
+            "avgScore": 4,
+            "avgDwellTime": 5652.125
+          },
+          {
+            "profileType": "aggressive",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 31,
+            "successfulExtractions": 31,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 10,
+            "extractionRate": 1,
+            "avgScore": 4,
+            "avgDwellTime": 5405.416666666667
+          }
+        ],
+        "humanSuccessRate": 1,
+        "falsePositiveRate": 0,
+        "botSuppressionRate": 0.09890109890109888,
+        "botExtractionRate": 0.9010989010989011
+      },
+      "blueProposal": {
+        "changes": {
+          "features": {
+            "pagination_ratio": {
+              "weight": 1.8,
+              "threshold": 0.5
+            },
+            "session_depth": {
+              "weight": 1.5,
+              "threshold": 4
+            }
+          }
+        },
+        "reasoning": "The current bot suppression is very low at 9.9%. Looking at bot profiles, moderate and aggressive bots (avg score 4.0) are getting through while humans (avg score 2.88) are fine. I need to target features that bots trigger more than humans. Since pagination_ratio and session_depth are likely triggered by bots doing deep crawling behavior, I'm increasing their weights moderately (pagination_ratio 1.2→1.8, session_depth 1→1.5) and slightly tightening thresholds to catch more bot behavior without affecting humans significantly."
+      },
+      "blueValidation": {
+        "accepted": false,
+        "reason": "FPR constraint violated: 40.0% > 5%",
+        "beforeMetrics": {
+          "fightNumber": 3,
+          "roundNumber": 4,
+          "timestamp": "2026-02-16T16:27:13.603Z",
+          "profiles": [
+            {
+              "profileType": "human",
+              "isBot": false,
+              "sessions": 10,
+              "totalRequests": 25,
+              "successfulExtractions": 25,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 1,
+              "avgScore": 2.880000000000001,
+              "avgDwellTime": 1616.7333333333333
+            },
+            {
+              "profileType": "naive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 28,
+              "successfulExtractions": 19,
+              "blockedRequests": 9,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.6785714285714286,
+              "avgScore": 2.6464285714285727,
+              "avgDwellTime": 5036.1
+            },
+            {
+              "profileType": "moderate",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 32,
+              "successfulExtractions": 32,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 4,
+              "avgDwellTime": 5652.125
+            },
+            {
+              "profileType": "aggressive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 31,
+              "successfulExtractions": 31,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 4,
+              "avgDwellTime": 5405.416666666667
+            }
+          ],
+          "humanSuccessRate": 1,
+          "falsePositiveRate": 0,
+          "botSuppressionRate": 0.09890109890109888,
+          "botExtractionRate": 0.9010989010989011
+        },
+        "afterMetrics": {
+          "fightNumber": 0,
+          "roundNumber": 4,
+          "timestamp": "2026-02-16T16:27:36.438Z",
+          "profiles": [
+            {
+              "profileType": "human",
+              "isBot": false,
+              "sessions": 10,
+              "totalRequests": 17,
+              "successfulExtractions": 10,
+              "blockedRequests": 4,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.5882352941176471,
+              "avgScore": 2.9529411764705884,
+              "avgDwellTime": 1903.4099999999999
+            },
+            {
+              "profileType": "naive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 27,
+              "successfulExtractions": 19,
+              "blockedRequests": 8,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.7037037037037037,
+              "avgScore": 3.133333333333332,
+              "avgDwellTime": 5178.266666666667
+            },
+            {
+              "profileType": "moderate",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 10,
+              "successfulExtractions": 0,
+              "blockedRequests": 10,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0,
+              "avgScore": 4.6000000000000005,
+              "avgDwellTime": 6875
+            },
+            {
+              "profileType": "aggressive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 10,
+              "successfulExtractions": 0,
+              "blockedRequests": 10,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0,
+              "avgScore": 4.6000000000000005,
+              "avgDwellTime": 6895.2
+            }
+          ],
+          "humanSuccessRate": 0.6,
+          "falsePositiveRate": 0.4,
+          "botSuppressionRate": 0.5957446808510638,
+          "botExtractionRate": 0.40425531914893614
+        }
+      },
+      "attackProfile": {
+        "mode": "headed",
+        "concurrency": 2,
+        "requests_per_minute": 20,
+        "warmup": true,
+        "query_strategy": {
+          "type": "random",
+          "edit_distance_max": 2
+        },
+        "pagination": {
+          "max_depth_per_session": 4,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2000,
+          6000
+        ]
+      },
+      "policy": {
+        "features": {
+          "reqs_per_min": {
+            "weight": 2,
+            "threshold": 18
+          },
+          "unique_queries_per_hour": {
+            "weight": 2.3,
+            "threshold": 28
+          },
+          "pagination_ratio": {
+            "weight": 1.2,
+            "threshold": 0.6
+          },
+          "session_depth": {
+            "weight": 1,
+            "threshold": 5
+          },
+          "dwell_time_avg": {
+            "weight": 2.8,
+            "threshold": 1800
+          },
+          "asset_warmup_missing": {
+            "weight": 4.5
+          }
+        },
+        "actions": {
+          "allow": {
+            "max_score": 2
+          },
+          "throttle": {
+            "max_score": 3
+          },
+          "challenge": {
+            "max_score": 4
+          },
+          "block": {
+            "max_score": 5
+          }
+        },
+        "constraints": {
+          "max_false_positive_rate": 0.01
+        }
+      },
+      "winner": "red",
+      "winReason": "90% extraction"
+    },
+    {
+      "fightNumber": 3,
+      "roundNumber": 5,
+      "timestamp": "2026-02-16T16:27:58.951Z",
+      "metrics": {
+        "fightNumber": 3,
+        "roundNumber": 5,
+        "timestamp": "2026-02-16T16:27:58.951Z",
+        "profiles": [
+          {
+            "profileType": "human",
+            "isBot": false,
+            "sessions": 10,
+            "totalRequests": 18,
+            "successfulExtractions": 18,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 0,
+            "extractionRate": 1,
+            "avgScore": 2.4444444444444446,
+            "avgDwellTime": 1920.175
+          },
+          {
+            "profileType": "naive",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 22,
+            "successfulExtractions": 19,
+            "blockedRequests": 3,
+            "throttledRequests": 0,
+            "challengedRequests": 0,
+            "extractionRate": 0.8636363636363636,
+            "avgScore": 1.8136363636363635,
+            "avgDwellTime": 5162.266666666667
+          },
+          {
+            "profileType": "moderate",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 23,
+            "successfulExtractions": 23,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 10,
+            "extractionRate": 1,
+            "avgScore": 4,
+            "avgDwellTime": 5795.15
+          },
+          {
+            "profileType": "aggressive",
+            "isBot": true,
+            "sessions": 10,
+            "totalRequests": 27,
+            "successfulExtractions": 27,
+            "blockedRequests": 0,
+            "throttledRequests": 0,
+            "challengedRequests": 10,
+            "extractionRate": 1,
+            "avgScore": 4,
+            "avgDwellTime": 5491.083333333333
+          }
+        ],
+        "humanSuccessRate": 1,
+        "falsePositiveRate": 0,
+        "botSuppressionRate": 0.04166666666666663,
+        "botExtractionRate": 0.9583333333333334
+      },
+      "blueProposal": {
+        "changes": {
+          "actions": {
+            "allow": {
+              "max_score": 1.8
+            },
+            "throttle": {
+              "max_score": 2.8
+            },
+            "challenge": {
+              "max_score": 3.8
+            },
+            "block": {
+              "max_score": 4.8
+            }
+          }
+        },
+        "reasoning": "The current suppression rate is very low at 4.2%. Looking at the bot scores: naive bots average 1.81, while moderate and aggressive bots average 4.0. Humans average 2.44. The current action thresholds are too permissive - with allow at 2.0, most naive bots (1.81 avg) are being allowed through. By lowering the allow threshold to 1.8, we'll catch more naive bots while still allowing most humans (2.44 avg) to pass. The other thresholds are adjusted proportionally to maintain the action hierarchy while being more aggressive overall."
+      },
+      "blueValidation": {
+        "accepted": false,
+        "reason": "FPR constraint violated: 40.0% > 5%",
+        "beforeMetrics": {
+          "fightNumber": 3,
+          "roundNumber": 5,
+          "timestamp": "2026-02-16T16:27:58.951Z",
+          "profiles": [
+            {
+              "profileType": "human",
+              "isBot": false,
+              "sessions": 10,
+              "totalRequests": 18,
+              "successfulExtractions": 18,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 1,
+              "avgScore": 2.4444444444444446,
+              "avgDwellTime": 1920.175
+            },
+            {
+              "profileType": "naive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 22,
+              "successfulExtractions": 19,
+              "blockedRequests": 3,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.8636363636363636,
+              "avgScore": 1.8136363636363635,
+              "avgDwellTime": 5162.266666666667
+            },
+            {
+              "profileType": "moderate",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 23,
+              "successfulExtractions": 23,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 4,
+              "avgDwellTime": 5795.15
+            },
+            {
+              "profileType": "aggressive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 27,
+              "successfulExtractions": 27,
+              "blockedRequests": 0,
+              "throttledRequests": 0,
+              "challengedRequests": 10,
+              "extractionRate": 1,
+              "avgScore": 4,
+              "avgDwellTime": 5491.083333333333
+            }
+          ],
+          "humanSuccessRate": 1,
+          "falsePositiveRate": 0,
+          "botSuppressionRate": 0.04166666666666663,
+          "botExtractionRate": 0.9583333333333334
+        },
+        "afterMetrics": {
+          "fightNumber": 0,
+          "roundNumber": 5,
+          "timestamp": "2026-02-16T16:28:20.782Z",
+          "profiles": [
+            {
+              "profileType": "human",
+              "isBot": false,
+              "sessions": 10,
+              "totalRequests": 19,
+              "successfulExtractions": 10,
+              "blockedRequests": 4,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.5263157894736842,
+              "avgScore": 2.526315789473685,
+              "avgDwellTime": 1946.986666666667
+            },
+            {
+              "profileType": "naive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 26,
+              "successfulExtractions": 19,
+              "blockedRequests": 7,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0.7307692307692307,
+              "avgScore": 2.4115384615384623,
+              "avgDwellTime": 5016.466666666666
+            },
+            {
+              "profileType": "moderate",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 10,
+              "successfulExtractions": 0,
+              "blockedRequests": 10,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0,
+              "avgScore": 4,
+              "avgDwellTime": 6991.6
+            },
+            {
+              "profileType": "aggressive",
+              "isBot": true,
+              "sessions": 10,
+              "totalRequests": 10,
+              "successfulExtractions": 0,
+              "blockedRequests": 10,
+              "throttledRequests": 0,
+              "challengedRequests": 0,
+              "extractionRate": 0,
+              "avgScore": 4,
+              "avgDwellTime": 6706.7
+            }
+          ],
+          "humanSuccessRate": 0.6,
+          "falsePositiveRate": 0.4,
+          "botSuppressionRate": 0.5869565217391304,
+          "botExtractionRate": 0.41304347826086957
+        }
+      },
+      "attackProfile": {
+        "mode": "headed",
+        "concurrency": 2,
+        "requests_per_minute": 20,
+        "warmup": true,
+        "query_strategy": {
+          "type": "random",
+          "edit_distance_max": 2
+        },
+        "pagination": {
+          "max_depth_per_session": 4,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2000,
+          6000
+        ]
+      },
+      "policy": {
+        "features": {
+          "reqs_per_min": {
+            "weight": 2,
+            "threshold": 18
+          },
+          "unique_queries_per_hour": {
+            "weight": 2.3,
+            "threshold": 28
+          },
+          "pagination_ratio": {
+            "weight": 1.2,
+            "threshold": 0.6
+          },
+          "session_depth": {
+            "weight": 1,
+            "threshold": 5
+          },
+          "dwell_time_avg": {
+            "weight": 2.8,
+            "threshold": 1800
+          },
+          "asset_warmup_missing": {
+            "weight": 4.5
+          }
+        },
+        "actions": {
+          "allow": {
+            "max_score": 2
+          },
+          "throttle": {
+            "max_score": 3
+          },
+          "challenge": {
+            "max_score": 4
+          },
+          "block": {
+            "max_score": 5
+          }
+        },
+        "constraints": {
+          "max_false_positive_rate": 0.01
+        }
+      },
+      "winner": "red",
+      "winReason": "96% extraction"
     }
   ]
 }
