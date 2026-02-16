@@ -118,5 +118,308 @@
       "suppression": 0.1351351351351351,
       "fpr": 0
     }
+  },
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "query_strategy": {
+          "type": "random",
+          "edit_distance_max": 3
+        },
+        "pagination": {
+          "max_depth_per_session": 2
+        }
+      },
+      "reasoning": "The naive profile succeeded while moderate/aggressive failed completely, suggesting the current refine strategy may be creating detectable patterns. Switching to random queries with higher variation should make requests less predictable. Reducing pagination depth prevents sessions from appearing too systematic while maintaining the session rotation that's working."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 41.7% to 50.0%",
+    "metricsBefore": {
+      "extraction": 0.4166666666666667,
+      "suppression": 0.5833333333333333,
+      "fpr": 0.3333333333333333
+    },
+    "metricsAfter": {
+      "extraction": 0.5,
+      "suppression": 0.5,
+      "fpr": 0.6666666666666666
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "actions": {
+          "allow": {
+            "max_score": 1
+          },
+          "throttle": {
+            "max_score": 2
+          },
+          "challenge": {
+            "max_score": 3
+          }
+        }
+      },
+      "reasoning": "The current policy has a major issue: 33.33% false positive rate, which far exceeds the 1% constraint. The block threshold (3.0) is lower than the challenge threshold (3.5), creating an inconsistent action hierarchy. I'm lowering the action thresholds to create a proper ascending order (1.0 → 2.0 → 3.0 → 3.0) while being more conservative to protect humans. This should dramatically reduce false positives by allowing more traffic and using gentler measures first, while still blocking the highest-scoring bots."
+    },
+    "accepted": false,
+    "reason": "No improvement: 58.3% → 57.1%",
+    "metricsBefore": {
+      "extraction": 0.4166666666666667,
+      "suppression": 0.5833333333333333,
+      "fpr": 0.3333333333333333
+    },
+    "metricsAfter": {
+      "extraction": 0.42857142857142855,
+      "suppression": 0.5714285714285714,
+      "fpr": 0.6666666666666666
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "mode": "headless",
+        "requests_per_minute": 40,
+        "query_strategy": {
+          "type": "refine",
+          "edit_distance_max": 2
+        },
+        "pagination": {
+          "max_depth_per_session": 3
+        }
+      },
+      "reasoning": "The naive profile performed exceptionally well (75% extraction) while moderate/aggressive profiles were completely blocked. This suggests the detection system is sensitive to aggressive patterns. I'm switching to headless mode for better stealth, slightly increasing requests_per_minute since we have headroom, using \"refine\" strategy with lower edit distance for more natural queries, and increasing pagination depth slightly to extract more data per session while staying conservative."
+    },
+    "accepted": false,
+    "reason": "No improvement: 42.9% → 30.8%",
+    "metricsBefore": {
+      "extraction": 0.42857142857142855,
+      "suppression": 0.5714285714285714,
+      "fpr": 0.3333333333333333
+    },
+    "metricsAfter": {
+      "extraction": 0.3076923076923077,
+      "suppression": 0.6923076923076923,
+      "fpr": 0.6666666666666666
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "actions": {
+          "allow": {
+            "max_score": 1
+          },
+          "throttle": {
+            "max_score": 1.8
+          },
+          "challenge": {
+            "max_score": 2.5
+          }
+        }
+      },
+      "reasoning": "The high false positive rate (33.33%) is primarily due to humans being blocked with avg score 1.82. By lowering the allow threshold to 1.0 and reducing other action thresholds, humans with score 1.82 will be throttled instead of blocked, dramatically reducing false positives. The moderate/aggressive bots with scores 3.70 will still be blocked since they exceed the challenge threshold of 2.5."
+    },
+    "accepted": false,
+    "reason": "No improvement: 57.1% → 53.8%",
+    "metricsBefore": {
+      "extraction": 0.42857142857142855,
+      "suppression": 0.5714285714285714,
+      "fpr": 0.3333333333333333
+    },
+    "metricsAfter": {
+      "extraction": 0.46153846153846156,
+      "suppression": 0.5384615384615384,
+      "fpr": 0.3333333333333333
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "requests_per_minute": 25,
+        "query_strategy": {
+          "type": "sequential",
+          "edit_distance_max": 2
+        },
+        "pagination": {
+          "max_depth_per_session": 3
+        }
+      },
+      "reasoning": "The metrics show only naive bots succeed while moderate/aggressive fail completely. This suggests the current settings are too aggressive. I'm reducing requests_per_minute from 30 to 25 to be more conservative, switching to sequential queries (more predictable than random), reducing edit_distance_max to 2 for subtler variations, and increasing pagination depth to 3 since we're being more careful elsewhere. This should help more bots reach the moderate threshold while maintaining stealth."
+    },
+    "accepted": false,
+    "reason": "No improvement: 45.5% → 38.5%",
+    "metricsBefore": {
+      "extraction": 0.45454545454545453,
+      "suppression": 0.5454545454545454,
+      "fpr": 0.6666666666666666
+    },
+    "metricsAfter": {
+      "extraction": 0.38461538461538464,
+      "suppression": 0.6153846153846154,
+      "fpr": 1
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "actions": {
+          "allow": {
+            "max_score": 2
+          },
+          "throttle": {
+            "max_score": 2.8
+          },
+          "challenge": {
+            "max_score": 3.2
+          }
+        }
+      },
+      "reasoning": "The current policy has a 66.67% false positive rate with humans averaging 2.63 score but being blocked at 3.0. By raising the allow threshold to 2.0 and adjusting throttle/challenge thresholds accordingly, we can let more humans pass while maintaining bot suppression. The naive bots (1.20 avg score) will still be caught by throttling/challenge, while aggressive/moderate bots (3.70 avg score) remain blocked."
+    },
+    "accepted": false,
+    "reason": "FPR constraint violated: 33.3% > 1%",
+    "metricsBefore": {
+      "extraction": 0.45454545454545453,
+      "suppression": 0.5454545454545454,
+      "fpr": 0.6666666666666666
+    },
+    "metricsAfter": {
+      "extraction": 0.42857142857142855,
+      "suppression": 0.5714285714285714,
+      "fpr": 0.3333333333333333
+    }
+  },
+  {
+    "roundNumber": 2,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "requests_per_minute": 25,
+        "jitter_ms": [
+          1000,
+          4000
+        ],
+        "pagination": {
+          "max_depth_per_session": 3,
+          "rotate_sessions": true
+        }
+      },
+      "reasoning": "The metrics show naive profiles are succeeding (71.4% extraction) while moderate/aggressive are failing completely (0% extraction). This suggests the detection system is very sensitive to certain behaviors. I'm reducing requests_per_minute to 25 to slow down and appear more human-like, increasing jitter range to add more variation in timing, and increasing pagination depth slightly since naive bots can handle deeper crawling. These changes should help more bots fall into the \"naive\" category that's currently evading detection."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 38.5% to 42.9%",
+    "metricsBefore": {
+      "extraction": 0.38461538461538464,
+      "suppression": 0.6153846153846154,
+      "fpr": 0.6666666666666666
+    },
+    "metricsAfter": {
+      "extraction": 0.42857142857142855,
+      "suppression": 0.5714285714285714,
+      "fpr": 0.6666666666666666
+    }
+  },
+  {
+    "roundNumber": 2,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "actions": {
+          "allow": {
+            "max_score": 2.8
+          },
+          "throttle": {
+            "max_score": 3.2
+          },
+          "challenge": {
+            "max_score": 3.8
+          }
+        }
+      },
+      "reasoning": "The current policy has a catastrophic 66.67% false positive rate, blocking legitimate humans with scores around 2.45. I need to significantly raise the action thresholds to fix this. Since humans average 2.45 score, setting allow threshold to 2.8 gives them breathing room. The moderate/aggressive bots score 3.70, so throttle at 3.2 and challenge at 3.8 should still catch most bots while protecting humans. This should drastically reduce false positives to meet the ≤1% constraint."
+    },
+    "accepted": false,
+    "reason": "No improvement: 61.5% → 4.2%",
+    "metricsBefore": {
+      "extraction": 0.38461538461538464,
+      "suppression": 0.6153846153846154,
+      "fpr": 0.6666666666666666
+    },
+    "metricsAfter": {
+      "extraction": 0.9583333333333334,
+      "suppression": 0.04166666666666663,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 1,
+        "requests_per_minute": 20
+      },
+      "reasoning": "The moderate and aggressive profiles are getting 100% blocked while naive succeeds at 85.7%. This suggests the detection system is primarily volume-based. Reducing concurrency to 1 and requests_per_minute to 20 should make our traffic pattern more similar to the successful naive profile while maintaining our other effective settings like headed mode, warmup, and session rotation."
+    },
+    "accepted": false,
+    "reason": "No improvement: 46.2% → 40.0%",
+    "metricsBefore": {
+      "extraction": 0.46153846153846156,
+      "suppression": 0.5384615384615384,
+      "fpr": 0.6666666666666666
+    },
+    "metricsAfter": {
+      "extraction": 0.4,
+      "suppression": 0.6,
+      "fpr": 1
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "reqs_per_min": {
+            "weight": 2,
+            "threshold": 15
+          },
+          "unique_queries_per_hour": {
+            "weight": 2.5,
+            "threshold": 25
+          },
+          "dwell_time_avg": {
+            "weight": 3,
+            "threshold": 2500
+          }
+        }
+      },
+      "reasoning": "The current policy has a 66.67% false positive rate which is far above the 1% limit. Humans are being blocked due to aggressive thresholds. I'm making targeted adjustments to reduce false positives while maintaining bot detection: 1) Increasing reqs_per_min threshold from 20→15 and weight 1.5→2 to better catch high-frequency bots, 2) Lowering unique_queries_per_hour threshold from 30→25 and increasing weight 2→2.5 to target bot search patterns more precisely, 3) Increasing dwell_time_avg threshold from 2000→2500ms and weight 2.5→3 to reduce false positives from humans who browse quickly while still catching bots with very short dwell times. This should reduce human blocking while maintaining detection of naive bots (avg score 1.77) and keeping moderate/aggressive bots blocked (avg score 3.70)."
+    },
+    "accepted": false,
+    "reason": "FPR constraint violated: 66.7% > 1%",
+    "metricsBefore": {
+      "extraction": 0.46153846153846156,
+      "suppression": 0.5384615384615384,
+      "fpr": 0.6666666666666666
+    },
+    "metricsAfter": {
+      "extraction": 0.38461538461538464,
+      "suppression": 0.6153846153846154,
+      "fpr": 0.6666666666666666
+    }
   }
 ]

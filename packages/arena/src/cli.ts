@@ -3,7 +3,7 @@ import { Command } from 'commander';
 import { join, resolve, dirname } from 'path';
 import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
-import type { RoundReport, AttackProfileProposal, PolicyProposal, RoundMetrics, AttackProfile, Policy } from '@bot-arena/types';
+import type { RoundReport, AttackProfileProposal, PolicyProposal, RoundMetrics, AttackProfile, Policy, ValidationResult } from '@bot-arena/types';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(__dirname, '..', '..', '..');
@@ -15,6 +15,7 @@ import {
 } from './tournament.js';
 import { validateRedProposal, validateBlueProposal, type ValidatorConfig } from './validator.js';
 import { generateReport } from './report.js';
+import { generateSummary } from './summary.js';
 import { isGitRepo, commitRound } from './git.js';
 import { loadHistory, saveHistory } from './history.js';
 import type { ProposalHistoryEntry } from '@bot-arena/types';
@@ -93,6 +94,10 @@ program
       return Object.keys(changes).length > 0;
     }
 
+    // Track metrics history for trends
+    const metricsHistory: RoundMetrics[] = [];
+    const allReports: RoundReport[] = [];
+
     for (let round = 1; round <= rounds; round++) {
       console.log(`\nRound ${round}/${rounds}`);
       console.log('─'.repeat(40));
@@ -128,6 +133,23 @@ program
           console.log(`${icon} ${label}: ${extraction}% success, avg score ${score}`);
         }
       }
+
+      // Track metrics for trends
+      metricsHistory.push(metrics);
+
+      // Show trends (after round 1)
+      if (metricsHistory.length > 1) {
+        const prev = metricsHistory[metricsHistory.length - 2];
+        const extractionDelta = metrics.botExtractionRate - prev.botExtractionRate;
+        const arrow = extractionDelta > 0 ? '↑' : extractionDelta < 0 ? '↓' : '→';
+        console.log(`├─ Trend: extraction ${arrow} ${Math.abs(extractionDelta * 100).toFixed(0)}% from last round`);
+      }
+
+      // Show scoreboard
+      const redWins = metricsHistory.filter(m => determineWinner(m).winner === 'red').length;
+      const blueWins = metricsHistory.filter(m => determineWinner(m).winner === 'blue').length;
+      const draws = metricsHistory.length - redWins - blueWins;
+      console.log(`├─ Scoreboard: 🔴 ${redWins} | 🔵 ${blueWins} | ⚪ ${draws}`);
 
       const { winner, reason } = determineWinner(metrics);
       const winnerLabel = winner === 'red' ? '🔴 Red' : winner === 'blue' ? '🔵 Blue' : '⚪ Draw';
@@ -245,6 +267,7 @@ program
 
       const reportPath = join(reportsDir, `round-${String(round).padStart(3, '0')}.html`);
       generateReport(report, reportPath);
+      allReports.push(report);
       console.log(`\nReport: ${reportPath}`);
 
       // Git tracking (if in a git repo and changes were accepted)
@@ -257,6 +280,11 @@ program
         }
       }
     }
+
+    // Generate summary dashboard
+    const summaryPath = join(reportsDir, 'summary.html');
+    generateSummary(allReports, summaryPath);
+    console.log(`Summary: ${summaryPath}`);
 
     console.log('\nBot Arena Complete!');
   });
