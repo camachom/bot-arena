@@ -39,6 +39,7 @@ export interface Policy {
     pagination_ratio: PolicyFeature;
     session_depth: PolicyFeature;
     dwell_time_avg: PolicyFeature;
+    timing_variance: PolicyFeature;
     asset_warmup_missing: Omit<PolicyFeature, 'threshold'> & { threshold?: number };
   };
   actions: PolicyActions;
@@ -53,6 +54,7 @@ export interface SessionFeatures {
   pagination_ratio: number;
   session_depth: number;
   dwell_time_avg: number;
+  timing_variance: number;  // coefficient of variation (stdDev / mean)
   asset_warmup_missing: boolean;
 }
 

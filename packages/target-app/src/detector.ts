@@ -32,6 +32,7 @@ function loadPolicy(policyPath: string): Policy {
         pagination_ratio: { weight: 1.2, threshold: 0.6 },
         session_depth: { weight: 1.0, threshold: 5 },
         dwell_time_avg: { weight: 1.8, threshold: 2000 },
+        timing_variance: { weight: 3.0, threshold: 0.4 },
         asset_warmup_missing: { weight: 3.0 },
       },
       actions: {
@@ -56,6 +57,7 @@ function extractFeatures(sessionId: string, logs: RequestLog[]): SessionFeatures
       pagination_ratio: 0,
       session_depth: 0,
       dwell_time_avg: 0,
+      timing_variance: 0,
       asset_warmup_missing: false,
     };
   }
@@ -98,6 +100,23 @@ function extractFeatures(sessionId: string, logs: RequestLog[]): SessionFeatures
     dwell_time_avg = totalDwell / (sortedLogs.length - 1);
   }
 
+  // Timing variance (coefficient of variation of dwell times)
+  let timing_variance = 0;
+  if (logs.length >= 3) {
+    const sortedLogs = [...logs].sort((a, b) => a.timestamp - b.timestamp);
+    const dwellTimes: number[] = [];
+    for (let i = 1; i < sortedLogs.length; i++) {
+      dwellTimes.push(sortedLogs[i].timestamp - sortedLogs[i - 1].timestamp);
+    }
+
+    const mean = dwellTimes.reduce((a, b) => a + b, 0) / dwellTimes.length;
+    if (mean > 0) {
+      const variance = dwellTimes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / dwellTimes.length;
+      const stdDev = Math.sqrt(variance);
+      timing_variance = stdDev / mean;
+    }
+  }
+
   // Asset warmup missing (no CSS/JS/images loaded)
   const assetLogs = logs.filter((l) => l.isAssetRequest);
   const asset_warmup_missing = assetLogs.length === 0 && logs.length > 2;
@@ -109,6 +128,7 @@ function extractFeatures(sessionId: string, logs: RequestLog[]): SessionFeatures
     pagination_ratio,
     session_depth,
     dwell_time_avg,
+    timing_variance,
     asset_warmup_missing,
   };
 }
@@ -144,6 +164,12 @@ function calculateScore(features: SessionFeatures, policy: Policy): { score: num
   if (dwell_time_avg > 0 && dwell_time_avg < pf.dwell_time_avg.threshold) {
     score += pf.dwell_time_avg.weight;
     triggered.push('dwell_time_avg');
+  }
+
+  // Low timing variance is suspicious (bots have consistent timing)
+  if (features.timing_variance > 0 && features.timing_variance < pf.timing_variance.threshold) {
+    score += pf.timing_variance.weight;
+    triggered.push('timing_variance');
   }
 
   if (asset_warmup_missing) {

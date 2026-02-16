@@ -24,6 +24,7 @@ Detection features you can tune:
 - pagination_ratio: page views / unique pages threshold + weight
 - session_depth: max pagination depth threshold + weight (bots go deeper)
 - dwell_time_avg: time between requests in ms (LOW = bot) threshold + weight
+- timing_variance: coefficient of variation of request timing (LOW = bot, they're too consistent even with jitter)
 - asset_warmup_missing: no CSS/JS loaded = headless bot, weight only (MOST RELIABLE)
 
 Strategies that work:

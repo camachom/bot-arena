@@ -10,6 +10,7 @@ describe('detector', () => {
       pagination_ratio: { weight: 1.2, threshold: 0.6 },
       session_depth: { weight: 1.0, threshold: 5 },
       dwell_time_avg: { weight: 1.8, threshold: 2000 },
+      timing_variance: { weight: 3.0, threshold: 0.4 },
       asset_warmup_missing: { weight: 3.0 },
     },
     actions: {
@@ -88,6 +89,7 @@ describe('detector', () => {
         pagination_ratio: 0.3,
         session_depth: 2,
         dwell_time_avg: 5000,
+        timing_variance: 0.6,  // human-like variance
         asset_warmup_missing: false,
       };
       const { score, triggered } = calculateScore(features, defaultPolicy);
@@ -103,6 +105,7 @@ describe('detector', () => {
         pagination_ratio: 0.3,
         session_depth: 2,
         dwell_time_avg: 5000,
+        timing_variance: 0.6,  // human-like variance
         asset_warmup_missing: false,
       };
       const { score, triggered } = calculateScore(features, defaultPolicy);
@@ -118,6 +121,7 @@ describe('detector', () => {
         pagination_ratio: 0.3,
         session_depth: 2,
         dwell_time_avg: 5000,
+        timing_variance: 0.6,  // human-like variance
         asset_warmup_missing: true,
       };
       const { score, triggered } = calculateScore(features, defaultPolicy);
@@ -133,12 +137,13 @@ describe('detector', () => {
         pagination_ratio: 0.8,
         session_depth: 10,
         dwell_time_avg: 500,
+        timing_variance: 0.2,  // bot-like low variance
         asset_warmup_missing: true,
       };
       const { score, triggered } = calculateScore(features, defaultPolicy);
-      // 1.5 + 2.0 + 1.2 + 1.0 + 1.8 + 3.0 = 10.5
-      expect(score).toBe(10.5);
-      expect(triggered).toHaveLength(6);
+      // 1.5 + 2.0 + 1.2 + 1.0 + 1.8 + 3.0 + 3.0 = 13.5
+      expect(score).toBe(13.5);
+      expect(triggered).toHaveLength(7);
     });
   });
 
