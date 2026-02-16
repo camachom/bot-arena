@@ -4,33 +4,38 @@ import { env } from './env.js';
 
 const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
-const SYSTEM_PROMPT = `You are a Blue Team agent in a bot arena. Your goal is to maximize bot suppression while keeping false positives below 1%.
+const SYSTEM_PROMPT = `You are a Blue Team agent in a bot arena. Your goal is to maximize bot suppression while keeping false positives low.
 
 You analyze round metrics and propose changes to the detection policy. Changes are validated - only improvements that maintain constraints are accepted.
 
 Key metrics you care about:
 - Bot suppression rate (higher = better)
-- False positive rate (must stay ≤ 1%)
-- Human success rate (must stay ≥ 99%)
+- False positive rate (should stay ≤ 5% for acceptance)
+- Human success rate (should stay ≥ 95% for acceptance)
 - Which features triggered most detections
 
+IMPORTANT: Focus on FEATURE WEIGHTS rather than action thresholds. The current policy may have humans scoring ~2.2, so:
+- If humans are being blocked, LOWER weights on features they trigger
+- To catch more bots, RAISE weights on features bots trigger that humans don't
+
 Detection features you can tune:
-- reqs_per_min: requests per minute threshold + weight
-- unique_queries_per_hour: distinct searches threshold + weight
+- reqs_per_min: requests per minute threshold + weight (bots are faster)
+- unique_queries_per_hour: distinct searches threshold + weight (bots search more)
 - pagination_ratio: page views / unique pages threshold + weight
-- session_depth: max pagination depth threshold + weight
-- dwell_time_avg: time between requests (LOW = bot) threshold + weight
-- asset_warmup_missing: no CSS/JS loaded = headless bot, weight only
+- session_depth: max pagination depth threshold + weight (bots go deeper)
+- dwell_time_avg: time between requests in ms (LOW = bot) threshold + weight
+- asset_warmup_missing: no CSS/JS loaded = headless bot, weight only (MOST RELIABLE)
 
-Actions thresholds:
-- allow.max_score: below this = allow
-- throttle.max_score: below this = slow down
-- challenge.max_score: below this = captcha
-- block.max_score: above this = block
+Strategies that work:
+1. Increase asset_warmup_missing weight - headless browsers don't load assets
+2. Lower dwell_time_avg threshold - bots have unnaturally consistent timing
+3. Be VERY conservative with changes - small weight adjustments (0.5) work better
 
-Score = sum of (weight) for each feature exceeding threshold.
+Actions thresholds (allow < throttle < challenge < block):
+- Raising thresholds = more permissive (fewer detections)
+- Lowering thresholds = more aggressive (more detections)
 
-Only include fields you want to change. Be careful with false positives - aggressive policies can block humans.`;
+Score = sum of (weight) for each feature exceeding threshold.`;
 
 const proposalTool: Anthropic.Tool = {
   name: 'submit_proposal',
@@ -77,24 +82,33 @@ ${metrics.profiles
 
 ${historySection}
 
-Analyze these results and use the submit_proposal tool to propose changes that will improve suppression while keeping FPR ≤ 1%.`;
+Analyze these results and use the submit_proposal tool to propose changes that will improve suppression while keeping FPR ≤ 5%.`;
 
   function formatHistory(entries: ProposalHistoryEntry[]): string {
-    const blueEntries = entries.filter((e) => e.team === 'blue').slice(-5);
+    const blueEntries = entries.filter((e) => e.team === 'blue');
     if (blueEntries.length === 0) return '';
 
-    const lines = blueEntries.map((entry) => {
-      const status = entry.accepted ? 'ACCEPTED' : 'REJECTED';
+    const accepted = blueEntries.filter(e => e.accepted);
+    const rejected = blueEntries.filter(e => !e.accepted);
+
+    const formatEntry = (entry: ProposalHistoryEntry) => {
       const changes = Object.keys(entry.proposal.changes).length > 0
         ? JSON.stringify(entry.proposal.changes)
         : 'no changes';
       const metricsChange = entry.metricsAfter
-        ? `suppression ${(entry.metricsBefore.suppression * 100).toFixed(0)}%→${(entry.metricsAfter.suppression * 100).toFixed(0)}%`
+        ? `suppression ${(entry.metricsBefore.suppression * 100).toFixed(0)}%→${(entry.metricsAfter.suppression * 100).toFixed(0)}%, FPR ${(entry.metricsBefore.fpr * 100).toFixed(0)}%→${(entry.metricsAfter.fpr * 100).toFixed(0)}%`
         : entry.reason;
-      return `- Round ${entry.roundNumber}: ${changes} → ${status} (${metricsChange})`;
-    });
+      return `  - Round ${entry.roundNumber}: ${changes} (${metricsChange})`;
+    };
 
-    return `Previous attempts:\n${lines.join('\n')}`;
+    let result = 'Previous attempts:\n';
+    if (accepted.length > 0) {
+      result += `ACCEPTED (${accepted.length}):\n${accepted.map(formatEntry).join('\n')}\n`;
+    }
+    if (rejected.length > 0) {
+      result += `REJECTED (${rejected.length}):\n${rejected.map(formatEntry).join('\n')}`;
+    }
+    return result;
   }
 
   const response = await client.messages.create({

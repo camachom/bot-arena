@@ -117,6 +117,7 @@ export interface ProfileMetrics {
 }
 
 export interface RoundMetrics {
+  fightNumber: number;
   roundNumber: number;
   timestamp: string;
   profiles: ProfileMetrics[];
@@ -152,6 +153,7 @@ export interface ValidationResult {
 }
 
 export interface RoundReport {
+  fightNumber: number;
   roundNumber: number;
   timestamp: string;
   metrics: RoundMetrics;
@@ -203,4 +205,12 @@ export interface SearchResult {
   page: number;
   pageSize: number;
   totalPages: number;
+}
+
+// Win Conditions
+export interface WinConditions {
+  fprThreshold: number;           // Max FPR for Blue to win (default 0.05)
+  humanSuccessThreshold: number;  // Min human success for Blue validation (default 0.95)
+  redWinThreshold: number;        // Min extraction for Red win (default 0.5)
+  blueWinThreshold: number;       // Min suppression for Blue win (default 0.5)
 }

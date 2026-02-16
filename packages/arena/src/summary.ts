@@ -1,6 +1,7 @@
 import { writeFileSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 import type { RoundReport, RoundMetrics } from '@bot-arena/types';
+import { determineWinner } from './scoring.js';
 
 export function generateSummary(reports: RoundReport[], outputPath: string): void {
   const html = renderSummaryHtml(reports);
@@ -8,29 +9,18 @@ export function generateSummary(reports: RoundReport[], outputPath: string): voi
   writeFileSync(outputPath, html);
 }
 
-function determineWinner(metrics: RoundMetrics): 'red' | 'blue' | 'draw' {
-  const { botExtractionRate, botSuppressionRate, falsePositiveRate } = metrics;
-  const blueConstrained = falsePositiveRate <= 0.01;
-
-  if (botExtractionRate > 0.5) {
-    return 'red';
-  }
-
-  if (botSuppressionRate > 0.5 && blueConstrained) {
-    return 'blue';
-  }
-
-  return 'draw';
+function formatRoundLabel(fightNumber: number, roundNumber: number): string {
+  return `F${fightNumber}-R${roundNumber}`;
 }
 
 function renderSummaryHtml(reports: RoundReport[]): string {
-  const rounds = reports.map(r => r.roundNumber);
+  const roundLabels = reports.map(r => formatRoundLabel(r.fightNumber, r.roundNumber));
   const extractionRates = reports.map(r => (r.metrics.botExtractionRate * 100).toFixed(1));
   const suppressionRates = reports.map(r => (r.metrics.botSuppressionRate * 100).toFixed(1));
   const fprRates = reports.map(r => (r.metrics.falsePositiveRate * 100).toFixed(2));
 
-  const redWins = reports.filter(r => determineWinner(r.metrics) === 'red').length;
-  const blueWins = reports.filter(r => determineWinner(r.metrics) === 'blue').length;
+  const redWins = reports.filter(r => determineWinner(r.metrics).winner === 'red').length;
+  const blueWins = reports.filter(r => determineWinner(r.metrics).winner === 'blue').length;
   const draws = reports.length - redWins - blueWins;
 
   const redAccepted = reports.filter(r => r.redValidation?.accepted).length;
@@ -132,6 +122,14 @@ function renderSummaryHtml(reports: RoundReport[]): string {
     .winner-red { color: #dc2626; font-weight: 600; }
     .winner-blue { color: #2563eb; font-weight: 600; }
     .winner-draw { color: #6b7280; font-weight: 600; }
+    .fight-separator td {
+      background: #e5e7eb;
+      font-weight: 600;
+      color: #374151;
+      text-align: center;
+      border-top: 2px solid #9ca3af;
+    }
+    .fight-separator:hover { background: #e5e7eb; }
     .acceptance-bar {
       display: flex;
       height: 24px;
@@ -237,13 +235,19 @@ function renderSummaryHtml(reports: RoundReport[]): string {
           </tr>
         </thead>
         <tbody>
-          ${reports.map(r => {
-            const winner = determineWinner(r.metrics);
+          ${reports.map((r, i) => {
+            const { winner } = determineWinner(r.metrics);
             const winnerClass = `winner-${winner}`;
             const winnerLabel = winner === 'red' ? 'Red' : winner === 'blue' ? 'Blue' : 'Draw';
-            return `
+            const roundLabel = formatRoundLabel(r.fightNumber, r.roundNumber);
+            // Add fight separator when fight number changes
+            const prevFight = i > 0 ? reports[i - 1].fightNumber : r.fightNumber;
+            const separator = i > 0 && r.fightNumber !== prevFight
+              ? `<tr class="fight-separator"><td colspan="7">Fight ${r.fightNumber}</td></tr>`
+              : '';
+            return `${separator}
           <tr>
-            <td>${r.roundNumber}</td>
+            <td>${roundLabel}</td>
             <td>${(r.metrics.botExtractionRate * 100).toFixed(1)}%</td>
             <td>${(r.metrics.botSuppressionRate * 100).toFixed(1)}%</td>
             <td>${(r.metrics.falsePositiveRate * 100).toFixed(2)}%</td>
@@ -263,7 +267,7 @@ function renderSummaryHtml(reports: RoundReport[]): string {
     new Chart(metricsCtx, {
       type: 'line',
       data: {
-        labels: ${JSON.stringify(rounds.map(r => `Round ${r}`))},
+        labels: ${JSON.stringify(roundLabels)},
         datasets: [
           {
             label: 'Extraction Rate',

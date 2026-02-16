@@ -16,8 +16,11 @@ import {
 import { validateRedProposal, validateBlueProposal, type ValidatorConfig } from './validator.js';
 import { generateReport } from './report.js';
 import { generateSummary } from './summary.js';
-import { isGitRepo, commitRound } from './git.js';
+import { isGitRepo, commitRound, commitFightEnd } from './git.js';
+import { determineWinner, DEFAULT_WIN_CONDITIONS } from './scoring.js';
+import type { WinConditions } from '@bot-arena/types';
 import { loadHistory, saveHistory } from './history.js';
+import { loadState, saveState, getNextFightNumber, formatFightRound, formatReportFilename } from './state.js';
 import type { ProposalHistoryEntry } from '@bot-arena/types';
 
 const program = new Command();
@@ -30,7 +33,8 @@ program
 program
   .option('-r, --rounds <number>', 'Number of rounds to run', '5')
   .option('-p, --port <number>', 'Base port for target app', '3000')
-  .option('-s, --sessions <number>', 'Sessions per profile', '3')
+  .option('-s, --sessions <number>', 'Sessions per profile', '10')
+  .option('--fpr-threshold <number>', 'Max FPR for Blue to win', '0.05')
   .option('--no-agents', 'Skip agent proposals')
   .option('--no-git', 'Disable automatic git commits')
   .option('-f, --fast', 'Fast mode with reduced dwell times')
@@ -41,9 +45,16 @@ program
     const rounds = parseInt(options.rounds);
     const port = parseInt(options.port);
     const sessions = parseInt(options.sessions);
+    const fprThreshold = parseFloat(options.fprThreshold);
     const useAgents = options.agents !== false;
     const useGit = options.git !== false;
     const fast = options.fast === true;
+
+    // Build win conditions from CLI options
+    const winConditions: WinConditions = {
+      ...DEFAULT_WIN_CONDITIONS,
+      fprThreshold,
+    };
 
     const configDir = resolve(options.configDir);
     const profilesDir = resolve(options.profilesDir);
@@ -64,7 +75,14 @@ program
       process.exit(1);
     }
 
+    // Load state (includes all historical reports)
+    const statePath = join(configDir, 'arena-state.json');
+    const state = loadState(statePath);
+    const fightNumber = getNextFightNumber(state);
+    state.currentFightNumber = fightNumber;
+
     console.log('Bot Arena Starting...\n');
+    console.log(`Fight: ${fightNumber}`);
     console.log(`Rounds: ${rounds}`);
     console.log(`Profiles: ${profilePaths.map((p) => p.split('/').pop()).join(', ')}`);
     console.log(`Sessions per profile: ${sessions}`);
@@ -94,12 +112,11 @@ program
       return Object.keys(changes).length > 0;
     }
 
-    // Track metrics history for trends
+    // Track metrics history for trends (current fight only)
     const metricsHistory: RoundMetrics[] = [];
-    const allReports: RoundReport[] = [];
 
     for (let round = 1; round <= rounds; round++) {
-      console.log(`\nRound ${round}/${rounds}`);
+      console.log(`\nFight ${fightNumber} - Round ${round}/${rounds}`);
       console.log('─'.repeat(40));
 
       const tournamentConfig: TournamentConfig = {
@@ -113,7 +130,7 @@ program
       };
 
       // Run tournament
-      const { metrics } = await runTournament(tournamentConfig, round);
+      const { metrics } = await runTournament(tournamentConfig, fightNumber, round);
 
       // Print results
       for (const profile of metrics.profiles) {
@@ -137,25 +154,28 @@ program
       // Track metrics for trends
       metricsHistory.push(metrics);
 
-      // Show trends (after round 1)
-      if (metricsHistory.length > 1) {
-        const prev = metricsHistory[metricsHistory.length - 2];
-        const extractionDelta = metrics.botExtractionRate - prev.botExtractionRate;
+      // Show trends (compare to previous round - from current fight or last fight)
+      const allReportsWithCurrent = [...state.reports, { metrics } as RoundReport];
+      if (allReportsWithCurrent.length > 1) {
+        const prev = allReportsWithCurrent[allReportsWithCurrent.length - 2];
+        const extractionDelta = metrics.botExtractionRate - prev.metrics.botExtractionRate;
         const arrow = extractionDelta > 0 ? '↑' : extractionDelta < 0 ? '↓' : '→';
-        console.log(`├─ Trend: extraction ${arrow} ${Math.abs(extractionDelta * 100).toFixed(0)}% from last round`);
+        const prevLabel = formatFightRound(prev.metrics.fightNumber, prev.metrics.roundNumber);
+        console.log(`├─ Trend: extraction ${arrow} ${Math.abs(extractionDelta * 100).toFixed(0)}% from ${prevLabel}`);
       }
 
-      // Show scoreboard
-      const redWins = metricsHistory.filter(m => determineWinner(m).winner === 'red').length;
-      const blueWins = metricsHistory.filter(m => determineWinner(m).winner === 'blue').length;
-      const draws = metricsHistory.length - redWins - blueWins;
-      console.log(`├─ Scoreboard: 🔴 ${redWins} | 🔵 ${blueWins} | ⚪ ${draws}`);
+      // Show all-time scoreboard
+      const allMetrics = [...state.reports.map(r => r.metrics), metrics];
+      const redWins = allMetrics.filter(m => determineWinner(m, winConditions).winner === 'red').length;
+      const blueWins = allMetrics.filter(m => determineWinner(m, winConditions).winner === 'blue').length;
+      const draws = allMetrics.length - redWins - blueWins;
+      console.log(`├─ Scoreboard: 🔴 ${redWins} | 🔵 ${blueWins} | ⚪ ${draws}  (all-time)`);
 
-      const { winner, reason } = determineWinner(metrics);
+      const { winner, reason } = determineWinner(metrics, winConditions);
       const winnerLabel = winner === 'red' ? '🔴 Red' : winner === 'blue' ? '🔵 Blue' : '⚪ Draw';
       console.log(`└─ Winner: ${winnerLabel} (${reason})`);
 
-      // Get agent proposals
+      // Get agent proposals - only from losing team (or both on draw)
       let redProposal: AttackProfileProposal | undefined;
       let blueProposal: PolicyProposal | undefined;
 
@@ -164,13 +184,21 @@ program
         const policy = loadPolicy(policyPath);
 
         try {
-          [redProposal, blueProposal] = await Promise.all([
-            getRedProposal(metrics, attackProfile, history),
-            getBlueProposal(metrics, policy, history),
-          ]);
+          // Red proposes if blue won or draw
+          if (winner !== 'red') {
+            redProposal = await getRedProposal(metrics, attackProfile, history);
+            console.log(`├─ Red proposal: ${summarizeRedProposal(redProposal)}`);
+          } else {
+            console.log(`├─ Red: skipped (winner)`);
+          }
 
-          console.log(`├─ Red proposal: ${summarizeRedProposal(redProposal)}`);
-          console.log(`├─ Blue proposal: ${summarizeBlueProposal(blueProposal)}`);
+          // Blue proposes if red won or draw
+          if (winner !== 'blue') {
+            blueProposal = await getBlueProposal(metrics, policy, history);
+            console.log(`├─ Blue proposal: ${summarizeBlueProposal(blueProposal)}`);
+          } else {
+            console.log(`├─ Blue: skipped (winner)`);
+          }
         } catch (err) {
           console.log('├─ Agent proposals failed:', err instanceof Error ? err.message : 'Unknown error');
         }
@@ -199,7 +227,7 @@ program
 
       if (blueProposal && hasChanges(blueProposal.changes)) {
         console.log('├─ Validation: running tournament for Blue...');
-        blueValidation = await validateBlueProposal(validatorConfig, blueProposal, metrics);
+        blueValidation = await validateBlueProposal(validatorConfig, blueProposal, metrics, winConditions);
         console.log(`├─ Blue: ${blueValidation.accepted ? 'ACCEPTED' : 'REJECTED'} (${blueValidation.reason})`);
       } else if (blueProposal) {
         console.log('├─ Blue: skipped (no changes)');
@@ -250,8 +278,9 @@ program
       saveHistory(historyPath, history);
 
       // Generate report
-      const { winner: reportWinner, reason: winReason } = determineWinner(metrics);
+      const { winner: reportWinner, reason: winReason } = determineWinner(metrics, winConditions);
       const report: RoundReport = {
+        fightNumber,
         roundNumber: round,
         timestamp: metrics.timestamp,
         metrics,
@@ -265,45 +294,44 @@ program
         winReason,
       };
 
-      const reportPath = join(reportsDir, `round-${String(round).padStart(3, '0')}.html`);
+      const reportFilename = formatReportFilename(fightNumber, round);
+      const reportPath = join(reportsDir, reportFilename);
       generateReport(report, reportPath);
-      allReports.push(report);
+
+      // Update state with new report
+      state.reports.push(report);
+      saveState(statePath, state);
+
       console.log(`\nReport: ${reportPath}`);
 
       // Git tracking (if in a git repo and changes were accepted)
       if (useGit && isGitRepo() && (redValidation?.accepted || blueValidation?.accepted)) {
         try {
           commitRound(report, rootDir);
-          console.log(`Git: committed round ${round} changes`);
+          console.log(`Git: committed ${formatFightRound(fightNumber, round)} changes`);
         } catch (err) {
           console.warn('Git commit failed:', err instanceof Error ? err.message : String(err));
         }
       }
     }
 
-    // Generate summary dashboard
+    // Generate cumulative summary dashboard from ALL reports
     const summaryPath = join(reportsDir, 'summary.html');
-    generateSummary(allReports, summaryPath);
-    console.log(`Summary: ${summaryPath}`);
+    generateSummary(state.reports, summaryPath);
+    console.log(`\nSummary: ${summaryPath} (${state.reports.length} total rounds)`);
+
+    // Commit final state if in git repo
+    if (useGit && isGitRepo()) {
+      try {
+        commitFightEnd(fightNumber, state.reports.slice(-rounds), reportsDir, statePath, rootDir);
+        console.log(`Git: committed fight ${fightNumber} summary`);
+      } catch (err) {
+        console.warn('Git commit failed:', err instanceof Error ? err.message : String(err));
+      }
+    }
 
     console.log('\nBot Arena Complete!');
   });
-
-function determineWinner(metrics: RoundMetrics): { winner: 'red' | 'blue' | 'draw'; reason: string } {
-  const { botExtractionRate, botSuppressionRate, falsePositiveRate } = metrics;
-
-  const blueConstrained = falsePositiveRate <= 0.01;
-
-  if (botExtractionRate > 0.5) {
-    return { winner: 'red', reason: `${(botExtractionRate * 100).toFixed(0)}% extraction` };
-  }
-
-  if (botSuppressionRate > 0.5 && blueConstrained) {
-    return { winner: 'blue', reason: `${(botSuppressionRate * 100).toFixed(0)}% suppression, ${(falsePositiveRate * 100).toFixed(1)}% FPR` };
-  }
-
-  return { winner: 'draw', reason: 'no clear advantage' };
-}
 
 function summarizeRedProposal(proposal: AttackProfileProposal): string {
   const changes: string[] = [];

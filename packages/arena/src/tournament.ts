@@ -11,6 +11,28 @@ import type {
 import { createTargetApp, type TargetAppInstance } from '@bot-arena/target-app';
 import { runParallelTraffic, loadProfile } from '@bot-arena/traffic';
 
+export interface PolicyValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+export function validatePolicy(policy: Policy): PolicyValidationResult {
+  const errors: string[] = [];
+  const { allow, throttle, challenge, block } = policy.actions;
+
+  if (!(allow.max_score < throttle.max_score)) {
+    errors.push(`allow (${allow.max_score}) must be < throttle (${throttle.max_score})`);
+  }
+  if (!(throttle.max_score < challenge.max_score)) {
+    errors.push(`throttle (${throttle.max_score}) must be < challenge (${challenge.max_score})`);
+  }
+  if (!(challenge.max_score < block.max_score)) {
+    errors.push(`challenge (${challenge.max_score}) must be < block (${block.max_score})`);
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
 export interface TournamentConfig {
   attackProfilePath: string;
   policyPath: string;
@@ -46,6 +68,7 @@ export function savePolicy(path: string, policy: Policy): void {
 
 export async function runTournament(
   config: TournamentConfig,
+  fightNumber: number,
   roundNumber: number
 ): Promise<TournamentResult> {
   const {
@@ -60,7 +83,14 @@ export async function runTournament(
 
   // Load configs
   const attackProfile = loadAttackProfile(attackProfilePath);
+  const policy = loadPolicy(policyPath);
   const profiles = profilePaths.map((p) => loadProfile(p));
+
+  // Validate policy
+  const validation = validatePolicy(policy);
+  if (!validation.valid) {
+    throw new Error(`Invalid policy configuration:\n  - ${validation.errors.join('\n  - ')}`);
+  }
 
   // Start target app
   let targetApp: TargetAppInstance | null = null;
@@ -89,7 +119,7 @@ export async function runTournament(
     });
 
     // Calculate metrics
-    const metrics = calculateMetrics(sessionResults, roundNumber);
+    const metrics = calculateMetrics(sessionResults, fightNumber, roundNumber);
 
     return { metrics, sessionResults };
   } finally {
@@ -99,7 +129,7 @@ export async function runTournament(
   }
 }
 
-function calculateMetrics(sessionResults: SessionResult[], roundNumber: number): RoundMetrics {
+function calculateMetrics(sessionResults: SessionResult[], fightNumber: number, roundNumber: number): RoundMetrics {
   const profileGroups = new Map<string, SessionResult[]>();
 
   for (const result of sessionResults) {
@@ -162,6 +192,7 @@ function calculateMetrics(sessionResults: SessionResult[], roundNumber: number):
   const botSuppressionRate = 1 - botExtractionRate;
 
   return {
+    fightNumber,
     roundNumber,
     timestamp: new Date().toISOString(),
     profiles: profileMetrics,

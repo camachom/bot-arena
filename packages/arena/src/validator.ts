@@ -5,7 +5,9 @@ import type {
   ValidationResult,
   AttackProfileProposal,
   PolicyProposal,
+  WinConditions,
 } from '@bot-arena/types';
+import { DEFAULT_WIN_CONDITIONS } from './scoring.js';
 import {
   runTournament,
   loadAttackProfile,
@@ -73,6 +75,7 @@ export async function validateRedProposal(
 
     const { metrics: afterMetrics } = await runTournament(
       tournamentConfig,
+      0, // Validation run, not tracked in state
       baselineMetrics.roundNumber
     );
 
@@ -127,7 +130,8 @@ export async function validateRedProposal(
 export async function validateBlueProposal(
   config: ValidatorConfig,
   proposal: PolicyProposal,
-  baselineMetrics: RoundMetrics
+  baselineMetrics: RoundMetrics,
+  conditions: WinConditions = DEFAULT_WIN_CONDITIONS
 ): Promise<ValidationResult> {
   const currentPolicy = loadPolicy(config.policyPath);
   const proposedPolicy = deepMerge(currentPolicy, proposal.changes);
@@ -148,16 +152,17 @@ export async function validateBlueProposal(
 
     const { metrics: afterMetrics } = await runTournament(
       tournamentConfig,
+      0, // Validation run, not tracked in state
       baselineMetrics.roundNumber
     );
 
-    // Blue team wins if suppression improves AND FPR stays under 1%
+    // Blue team wins if suppression improves AND meets FPR/human success constraints
     const beforeSuppression = baselineMetrics.botSuppressionRate;
     const afterSuppression = afterMetrics.botSuppressionRate;
     const improved = afterSuppression > beforeSuppression;
 
-    const fprConstraint = afterMetrics.falsePositiveRate <= 0.01;
-    const humanSuccessConstraint = afterMetrics.humanSuccessRate >= 0.99;
+    const fprConstraint = afterMetrics.falsePositiveRate <= conditions.fprThreshold;
+    const humanSuccessConstraint = afterMetrics.humanSuccessRate >= conditions.humanSuccessThreshold;
 
     const accepted = improved && fprConstraint && humanSuccessConstraint;
 
@@ -183,9 +188,9 @@ export async function validateBlueProposal(
       if (!improved) {
         reason = `No improvement: ${(beforeSuppression * 100).toFixed(1)}% → ${(afterSuppression * 100).toFixed(1)}%`;
       } else if (!fprConstraint) {
-        reason = `FPR constraint violated: ${(afterMetrics.falsePositiveRate * 100).toFixed(1)}% > 1%`;
+        reason = `FPR constraint violated: ${(afterMetrics.falsePositiveRate * 100).toFixed(1)}% > ${(conditions.fprThreshold * 100).toFixed(0)}%`;
       } else if (!humanSuccessConstraint) {
-        reason = `Human success rate too low: ${(afterMetrics.humanSuccessRate * 100).toFixed(1)}% < 99%`;
+        reason = `Human success rate too low: ${(afterMetrics.humanSuccessRate * 100).toFixed(1)}% < ${(conditions.humanSuccessThreshold * 100).toFixed(0)}%`;
       }
 
       return {

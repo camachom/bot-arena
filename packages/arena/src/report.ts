@@ -9,14 +9,15 @@ export function generateReport(report: RoundReport, outputPath: string): void {
 }
 
 function renderReportHtml(report: RoundReport): string {
-  const { roundNumber, timestamp, metrics, redProposal, blueProposal, redValidation, blueValidation, winner, winReason } = report;
+  const { fightNumber, roundNumber, timestamp, metrics, redProposal, blueProposal, redValidation, blueValidation, winner, winReason } = report;
+  const roundLabel = `F${fightNumber}-R${roundNumber}`;
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bot Arena - Round ${roundNumber}</title>
+  <title>Bot Arena - ${roundLabel}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -151,7 +152,7 @@ function renderReportHtml(report: RoundReport): string {
 <body>
   <div class="container">
     <h1>Bot Arena</h1>
-    <p class="subtitle">Round ${roundNumber} &middot; ${new Date(timestamp).toLocaleString()}</p>
+    <p class="subtitle">${roundLabel} (Fight ${fightNumber}, Round ${roundNumber}) &middot; ${new Date(timestamp).toLocaleString()}</p>
 
     <div class="winner-banner winner-${winner}">
       ${winner === 'red' ? '🔴 Red Wins' : winner === 'blue' ? '🔵 Blue Wins' : '⚪ Draw'}
