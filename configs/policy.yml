@@ -18,9 +18,9 @@ features:
     weight: 5
     threshold: 0.35
   asset_warmup_missing:
-    weight: 8
+    weight: 8.5
   mouse_movement_entropy:
-    weight: 6
+    weight: 6.5
     threshold: 2
   dwell_vs_content_length:
     weight: 2.5
