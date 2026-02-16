@@ -4,11 +4,11 @@
   "requests_per_minute": 30,
   "warmup": true,
   "query_strategy": {
-    "type": "refine",
-    "edit_distance_max": 2
+    "type": "random",
+    "edit_distance_max": 3
   },
   "pagination": {
-    "max_depth_per_session": 3,
+    "max_depth_per_session": 2,
     "rotate_sessions": true
   },
   "jitter_ms": [
