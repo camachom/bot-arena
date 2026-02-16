@@ -15,12 +15,12 @@ features:
     weight: 2.3
     threshold: 1200
   timing_variance:
-    weight: 5
+    weight: 5.5
     threshold: 0.35
   asset_warmup_missing:
-    weight: 8.5
+    weight: 9
   mouse_movement_entropy:
-    weight: 6.5
+    weight: 7
     threshold: 2
   dwell_vs_content_length:
     weight: 2.5
