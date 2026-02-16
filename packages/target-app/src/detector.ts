@@ -34,6 +34,8 @@ function loadPolicy(policyPath: string): Policy {
         dwell_time_avg: { weight: 1.8, threshold: 2000 },
         timing_variance: { weight: 3.0, threshold: 0.4 },
         asset_warmup_missing: { weight: 3.0 },
+        mouse_movement_entropy: { weight: 4.0, threshold: 2.0 },
+        dwell_vs_content_length: { weight: 3.5, threshold: 0.3 },
       },
       actions: {
         allow: { max_score: 3 },
@@ -48,6 +50,80 @@ function loadPolicy(policyPath: string): Policy {
   }
 }
 
+// Calculate Shannon entropy of mouse movement angles
+function calculateMouseEntropy(logs: RequestLog[]): number {
+  const allMovements = logs.flatMap(l => l.mouseMovements || []);
+  if (allMovements.length < 3) return 0;
+
+  // Calculate angles between consecutive movement segments
+  const angles: number[] = [];
+  for (let i = 2; i < allMovements.length; i++) {
+    const p1 = allMovements[i - 2];
+    const p2 = allMovements[i - 1];
+    const p3 = allMovements[i];
+
+    // Vector from p1 to p2
+    const v1x = p2.x - p1.x;
+    const v1y = p2.y - p1.y;
+    // Vector from p2 to p3
+    const v2x = p3.x - p2.x;
+    const v2y = p3.y - p2.y;
+
+    // Calculate angle change (in degrees, binned to 15-degree increments)
+    const angle1 = Math.atan2(v1y, v1x);
+    const angle2 = Math.atan2(v2y, v2x);
+    let angleDiff = (angle2 - angle1) * (180 / Math.PI);
+    // Normalize to 0-360
+    angleDiff = ((angleDiff % 360) + 360) % 360;
+    // Bin to 15-degree increments (24 bins)
+    const bin = Math.floor(angleDiff / 15);
+    angles.push(bin);
+  }
+
+  if (angles.length === 0) return 0;
+
+  // Calculate Shannon entropy
+  const binCounts = new Map<number, number>();
+  for (const bin of angles) {
+    binCounts.set(bin, (binCounts.get(bin) || 0) + 1);
+  }
+
+  let entropy = 0;
+  const total = angles.length;
+  for (const count of binCounts.values()) {
+    const p = count / total;
+    if (p > 0) {
+      entropy -= p * Math.log2(p);
+    }
+  }
+
+  return entropy;
+}
+
+// Calculate correlation between dwell time and content length
+function calculateDwellContentCorrelation(logs: RequestLog[]): number {
+  // Filter logs that have both dwell time and content length
+  const validLogs = logs.filter(l => l.dwellTimeMs !== undefined && l.contentLength !== undefined && l.contentLength > 0);
+  if (validLogs.length < 3) return 0.5;  // Neutral value - won't trigger detection for short sessions
+
+  const dwellTimes = validLogs.map(l => l.dwellTimeMs!);
+  const contentLengths = validLogs.map(l => l.contentLength!);
+
+  // Calculate Pearson correlation coefficient
+  const n = dwellTimes.length;
+  const sumX = dwellTimes.reduce((a, b) => a + b, 0);
+  const sumY = contentLengths.reduce((a, b) => a + b, 0);
+  const sumXY = dwellTimes.reduce((sum, x, i) => sum + x * contentLengths[i], 0);
+  const sumX2 = dwellTimes.reduce((sum, x) => sum + x * x, 0);
+  const sumY2 = contentLengths.reduce((sum, y) => sum + y * y, 0);
+
+  const numerator = n * sumXY - sumX * sumY;
+  const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+  if (denominator === 0) return 0;
+  return numerator / denominator;
+}
+
 function extractFeatures(sessionId: string, logs: RequestLog[]): SessionFeatures {
   if (logs.length === 0) {
     return {
@@ -59,6 +135,8 @@ function extractFeatures(sessionId: string, logs: RequestLog[]): SessionFeatures
       dwell_time_avg: 0,
       timing_variance: 0,
       asset_warmup_missing: false,
+      mouse_movement_entropy: 0,
+      dwell_vs_content_length: 0,
     };
   }
 
@@ -121,6 +199,12 @@ function extractFeatures(sessionId: string, logs: RequestLog[]): SessionFeatures
   const assetLogs = logs.filter((l) => l.isAssetRequest);
   const asset_warmup_missing = assetLogs.length === 0 && logs.length > 2;
 
+  // Mouse movement entropy (high = human-like irregular movements)
+  const mouse_movement_entropy = calculateMouseEntropy(logs);
+
+  // Dwell time vs content length correlation (high = human reads content)
+  const dwell_vs_content_length = calculateDwellContentCorrelation(logs);
+
   return {
     sessionId,
     reqs_per_min,
@@ -130,6 +214,8 @@ function extractFeatures(sessionId: string, logs: RequestLog[]): SessionFeatures
     dwell_time_avg,
     timing_variance,
     asset_warmup_missing,
+    mouse_movement_entropy,
+    dwell_vs_content_length,
   };
 }
 
@@ -175,6 +261,18 @@ function calculateScore(features: SessionFeatures, policy: Policy): { score: num
   if (asset_warmup_missing) {
     score += pf.asset_warmup_missing.weight;
     triggered.push('asset_warmup_missing');
+  }
+
+  // Low mouse movement entropy is suspicious (bots have linear paths)
+  if (pf.mouse_movement_entropy && features.mouse_movement_entropy > 0 && features.mouse_movement_entropy < pf.mouse_movement_entropy.threshold) {
+    score += pf.mouse_movement_entropy.weight;
+    triggered.push('mouse_movement_entropy');
+  }
+
+  // Low dwell/content correlation is suspicious (bots use fixed delays)
+  if (pf.dwell_vs_content_length && features.dwell_vs_content_length < pf.dwell_vs_content_length.threshold) {
+    score += pf.dwell_vs_content_length.weight;
+    triggered.push('dwell_vs_content_length');
   }
 
   return { score, triggered };

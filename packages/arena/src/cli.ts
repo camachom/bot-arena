@@ -173,7 +173,12 @@ program
 
       const { winner, reason } = determineWinner(metrics, winConditions);
       const winnerLabel = winner === 'red' ? '🔴 Red' : winner === 'blue' ? '🔵 Blue' : '⚪ Draw';
-      console.log(`└─ Winner: ${winnerLabel} (${reason})`);
+      if (winner === 'draw') {
+        const extractionPct = (metrics.botExtractionRate * 100).toFixed(0);
+        console.log(`└─ ${winnerLabel}: Both in contested zone (${extractionPct}% extraction, need >70% for clear winner)`);
+      } else {
+        console.log(`└─ Winner: ${winnerLabel} (${reason})`);
+      }
 
       // Get agent proposals - only from losing team (or both on draw)
       let redProposal: AttackProfileProposal | undefined;

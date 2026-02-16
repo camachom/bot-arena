@@ -12,6 +12,8 @@ describe('detector', () => {
       dwell_time_avg: { weight: 1.8, threshold: 2000 },
       timing_variance: { weight: 3.0, threshold: 0.4 },
       asset_warmup_missing: { weight: 3.0 },
+      mouse_movement_entropy: { weight: 4.0, threshold: 2.0 },
+      dwell_vs_content_length: { weight: 3.5, threshold: 0.3 },
     },
     actions: {
       allow: { max_score: 3 },
@@ -91,6 +93,8 @@ describe('detector', () => {
         dwell_time_avg: 5000,
         timing_variance: 0.6,  // human-like variance
         asset_warmup_missing: false,
+        mouse_movement_entropy: 3.0,  // human-like high entropy
+        dwell_vs_content_length: 0.7,  // human-like high correlation
       };
       const { score, triggered } = calculateScore(features, defaultPolicy);
       expect(score).toBe(0);
@@ -107,6 +111,8 @@ describe('detector', () => {
         dwell_time_avg: 5000,
         timing_variance: 0.6,  // human-like variance
         asset_warmup_missing: false,
+        mouse_movement_entropy: 3.0,
+        dwell_vs_content_length: 0.7,
       };
       const { score, triggered } = calculateScore(features, defaultPolicy);
       expect(score).toBe(1.5);
@@ -123,6 +129,8 @@ describe('detector', () => {
         dwell_time_avg: 5000,
         timing_variance: 0.6,  // human-like variance
         asset_warmup_missing: true,
+        mouse_movement_entropy: 3.0,
+        dwell_vs_content_length: 0.7,
       };
       const { score, triggered } = calculateScore(features, defaultPolicy);
       expect(score).toBe(3.0);
@@ -139,11 +147,13 @@ describe('detector', () => {
         dwell_time_avg: 500,
         timing_variance: 0.2,  // bot-like low variance
         asset_warmup_missing: true,
+        mouse_movement_entropy: 0.5,  // bot-like low entropy
+        dwell_vs_content_length: 0.1,  // bot-like low correlation
       };
       const { score, triggered } = calculateScore(features, defaultPolicy);
-      // 1.5 + 2.0 + 1.2 + 1.0 + 1.8 + 3.0 + 3.0 = 13.5
-      expect(score).toBe(13.5);
-      expect(triggered).toHaveLength(7);
+      // 1.5 + 2.0 + 1.2 + 1.0 + 1.8 + 3.0 + 3.0 + 4.0 + 3.5 = 21.0
+      expect(score).toBe(21);
+      expect(triggered).toHaveLength(9);
     });
   });
 

@@ -7,7 +7,17 @@ import type {
   SessionResult,
   RoundMetrics,
   ProfileMetrics,
+  FeatureAnalysis,
+  DetectorAction,
 } from '@bot-arena/types';
+
+// Weighted extraction scoring: partial credit for throttle/challenge
+const EXTRACTION_WEIGHTS: Record<DetectorAction, number> = {
+  block: 0.0,
+  challenge: 0.25,
+  throttle: 0.5,
+  allow: 1.0,
+};
 import { createTargetApp, type TargetAppInstance } from '@bot-arena/target-app';
 import { runParallelTraffic, loadProfile } from '@bot-arena/traffic';
 
@@ -129,6 +139,53 @@ export async function runTournament(
   }
 }
 
+function calculateFeatureAnalysis(sessionResults: SessionResult[]): FeatureAnalysis[] {
+  const featureNames = [
+    'reqs_per_min', 'unique_queries_per_hour', 'pagination_ratio',
+    'session_depth', 'dwell_time_avg', 'timing_variance', 'asset_warmup_missing',
+    'mouse_movement_entropy', 'dwell_vs_content_length'
+  ];
+
+  const botSessions = sessionResults.filter(s => s.isBot);
+  const humanSessions = sessionResults.filter(s => !s.isBot);
+
+  return featureNames.map(featureName => {
+    const botTriggered = botSessions.filter(s =>
+      s.detectorResults.some(dr => dr.triggeredFeatures.includes(featureName))
+    ).length;
+    const humanTriggered = humanSessions.filter(s =>
+      s.detectorResults.some(dr => dr.triggeredFeatures.includes(featureName))
+    ).length;
+
+    const botTriggerRate = botSessions.length > 0 ? botTriggered / botSessions.length : 0;
+    const humanTriggerRate = humanSessions.length > 0 ? humanTriggered / humanSessions.length : 0;
+
+    // Get average values for numeric features
+    let avgBotValue: number | null = null;
+    let avgHumanValue: number | null = null;
+    if (featureName !== 'asset_warmup_missing') {
+      const botValues = botSessions
+        .flatMap(s => s.detectorResults.map(dr => dr.features[featureName as keyof typeof dr.features]))
+        .filter((v): v is number => typeof v === 'number');
+      const humanValues = humanSessions
+        .flatMap(s => s.detectorResults.map(dr => dr.features[featureName as keyof typeof dr.features]))
+        .filter((v): v is number => typeof v === 'number');
+
+      avgBotValue = botValues.length > 0 ? botValues.reduce((a, b) => a + b, 0) / botValues.length : null;
+      avgHumanValue = humanValues.length > 0 ? humanValues.reduce((a, b) => a + b, 0) / humanValues.length : null;
+    }
+
+    return {
+      featureName,
+      botTriggerRate,
+      humanTriggerRate,
+      avgBotValue,
+      avgHumanValue,
+      discriminationScore: botTriggerRate - humanTriggerRate,
+    };
+  });
+}
+
 function calculateMetrics(sessionResults: SessionResult[], fightNumber: number, roundNumber: number): RoundMetrics {
   const profileGroups = new Map<string, SessionResult[]>();
 
@@ -144,14 +201,13 @@ function calculateMetrics(sessionResults: SessionResult[], fightNumber: number, 
   let humanSuccessCount = 0;
   let humanTotalCount = 0;
   let humanBlockedCount = 0;
-  let botTotalExtractions = 0;
+  let botWeightedExtractions = 0;
   let botTotalRequests = 0;
 
   for (const [profileType, results] of profileGroups) {
     const isBot = results[0].isBot;
 
     const totalRequests = results.reduce((sum, r) => sum + r.pagesRequested, 0);
-    const successfulExtractions = results.reduce((sum, r) => sum + r.pagesExtracted, 0);
     const blockedRequests = results.filter((r) => r.wasBlocked).length;
     const throttledRequests = results.filter((r) => r.wasThrottled).length;
     const challengedRequests = results.filter((r) => r.wasChallenged).length;
@@ -162,16 +218,29 @@ function calculateMetrics(sessionResults: SessionResult[], fightNumber: number, 
       results.reduce((sum, r) => sum + r.durationMs / Math.max(1, r.pagesRequested), 0) /
       Math.max(1, results.length);
 
+    // Calculate weighted extraction from detector results
+    let weightedExtractions = 0;
+    let requestCount = 0;
+    for (const result of results) {
+      for (const dr of result.detectorResults) {
+        requestCount++;
+        weightedExtractions += EXTRACTION_WEIGHTS[dr.action];
+      }
+    }
+
+    // For profile-level metrics, use weighted extraction rate
+    const extractionRate = requestCount > 0 ? weightedExtractions / requestCount : 0;
+
     profileMetrics.push({
       profileType: profileType as ProfileMetrics['profileType'],
       isBot,
       sessions: results.length,
       totalRequests,
-      successfulExtractions,
+      successfulExtractions: Math.round(weightedExtractions), // Approximate for display
       blockedRequests,
       throttledRequests,
       challengedRequests,
-      extractionRate: totalRequests > 0 ? successfulExtractions / totalRequests : 0,
+      extractionRate,
       avgScore,
       avgDwellTime,
     });
@@ -181,15 +250,16 @@ function calculateMetrics(sessionResults: SessionResult[], fightNumber: number, 
       humanSuccessCount += results.filter((r) => !r.wasBlocked).length;
       humanBlockedCount += results.filter((r) => r.wasBlocked).length;
     } else {
-      botTotalExtractions += successfulExtractions;
-      botTotalRequests += totalRequests;
+      botWeightedExtractions += weightedExtractions;
+      botTotalRequests += requestCount;
     }
   }
 
   const humanSuccessRate = humanTotalCount > 0 ? humanSuccessCount / humanTotalCount : 1;
   const falsePositiveRate = humanTotalCount > 0 ? humanBlockedCount / humanTotalCount : 0;
-  const botExtractionRate = botTotalRequests > 0 ? botTotalExtractions / botTotalRequests : 0;
+  const botExtractionRate = botTotalRequests > 0 ? botWeightedExtractions / botTotalRequests : 0;
   const botSuppressionRate = 1 - botExtractionRate;
+  const featureAnalysis = calculateFeatureAnalysis(sessionResults);
 
   return {
     fightNumber,
@@ -200,5 +270,6 @@ function calculateMetrics(sessionResults: SessionResult[], fightNumber: number, 
     falsePositiveRate,
     botSuppressionRate,
     botExtractionRate,
+    featureAnalysis,
   };
 }

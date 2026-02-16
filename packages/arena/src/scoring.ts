@@ -3,8 +3,8 @@ import type { RoundMetrics, WinConditions } from '@bot-arena/types';
 export const DEFAULT_WIN_CONDITIONS: WinConditions = {
   fprThreshold: 0.05,        // 5% more realistic for small samples
   humanSuccessThreshold: 0.95,
-  redWinThreshold: 0.5,
-  blueWinThreshold: 0.5,
+  redWinThreshold: 0.7,      // 70% extraction for Red win (creates draw zone)
+  blueWinThreshold: 0.7,     // 70% suppression for Blue win (creates draw zone)
 };
 
 export function determineWinner(

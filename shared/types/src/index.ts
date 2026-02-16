@@ -13,6 +13,11 @@ export interface AttackProfile {
     rotate_sessions: boolean;
   };
   jitter_ms: [number, number];
+  evasion?: {
+    mouse_style: 'linear' | 'curved' | 'human_like';
+    dwell_content_correlation: boolean;
+    timing_humanization: boolean;
+  };
 }
 
 // Policy Configuration (Blue Team)
@@ -41,6 +46,8 @@ export interface Policy {
     dwell_time_avg: PolicyFeature;
     timing_variance: PolicyFeature;
     asset_warmup_missing: Omit<PolicyFeature, 'threshold'> & { threshold?: number };
+    mouse_movement_entropy: PolicyFeature;  // LOW entropy = bot (linear paths)
+    dwell_vs_content_length: PolicyFeature;  // LOW correlation = bot (fixed delays)
   };
   actions: PolicyActions;
   constraints: PolicyConstraints;
@@ -56,6 +63,8 @@ export interface SessionFeatures {
   dwell_time_avg: number;
   timing_variance: number;  // coefficient of variation (stdDev / mean)
   asset_warmup_missing: boolean;
+  mouse_movement_entropy: number;  // Shannon entropy of mouse path angles (high = human)
+  dwell_vs_content_length: number;  // correlation between dwell time and content size (high = human)
 }
 
 // Detection Actions
@@ -67,6 +76,16 @@ export interface DetectorResult {
   action: DetectorAction;
   features: SessionFeatures;
   triggeredFeatures: string[];
+}
+
+// Feature Analysis for Blue agent diagnostics
+export interface FeatureAnalysis {
+  featureName: string;
+  botTriggerRate: number;
+  humanTriggerRate: number;
+  avgBotValue: number | null;
+  avgHumanValue: number | null;
+  discriminationScore: number;
 }
 
 // Traffic Profile Types
@@ -127,6 +146,7 @@ export interface RoundMetrics {
   falsePositiveRate: number;
   botSuppressionRate: number;
   botExtractionRate: number;
+  featureAnalysis: FeatureAnalysis[];
 }
 
 // Agent Proposals
@@ -180,6 +200,13 @@ export interface ProposalHistoryEntry {
   metricsAfter?: { extraction: number; suppression: number; fpr: number };
 }
 
+// Mouse Movement Data (for entropy calculation)
+export interface MouseMovement {
+  x: number;
+  y: number;
+  timestamp: number;
+}
+
 // Request Logging
 export interface RequestLog {
   sessionId: string;
@@ -189,6 +216,9 @@ export interface RequestLog {
   query: Record<string, string>;
   userAgent: string;
   isAssetRequest: boolean;
+  mouseMovements?: MouseMovement[];
+  contentLength?: number;
+  dwellTimeMs?: number;
 }
 
 // Product Data

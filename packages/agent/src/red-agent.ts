@@ -24,6 +24,13 @@ You can modify these attack profile settings:
 - pagination.rotate_sessions: boolean
 - jitter_ms: [min, max] delay range between requests
 
+EVASION CONTROLS (powerful features for evading behavioral detection):
+- evasion.mouse_style: "linear" (bot-like), "curved" (Bezier curves), or "human_like" (realistic mouse paths with micro-hesitations and overshoots)
+- evasion.dwell_content_correlation: boolean - if true, dwell time scales with content length like a human reading
+- evasion.timing_humanization: boolean - if true, adds random pauses, "thinking time", and occasional long delays like human distractions
+
+These evasion settings help evade features like mouse_movement_entropy, dwell_vs_content_length, and timing_variance.
+
 Only include fields you want to change. Be strategic - small incremental changes work better than drastic ones.`;
 
 const proposalTool: Anthropic.Tool = {
@@ -52,6 +59,14 @@ export async function getRedProposal(
 ): Promise<AttackProfileProposal> {
   const historySection = formatHistory(history);
 
+  // Format feature analysis showing which features are triggering on bots
+  const featureSection = metrics.featureAnalysis
+    .filter((f) => f.botTriggerRate > 0.1)
+    .sort((a, b) => b.discriminationScore - a.discriminationScore)
+    .slice(0, 5)
+    .map((f) => `- ${f.featureName}: triggers ${(f.botTriggerRate * 100).toFixed(0)}% of bots (discrimination: ${f.discriminationScore.toFixed(2)})`)
+    .join('\n');
+
   const prompt = `Current attack profile:
 ${JSON.stringify(currentProfile, null, 2)}
 
@@ -67,6 +82,9 @@ ${metrics.profiles
       `- ${p.profileType}: ${(p.extractionRate * 100).toFixed(1)}% extracted, ${p.blockedRequests} blocked, avg score ${p.avgScore.toFixed(2)}`
   )
   .join('\n')}
+
+Top detection features triggering on bots:
+${featureSection || 'No significant feature triggers'}
 
 ${historySection}
 

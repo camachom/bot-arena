@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { RoundMetrics, Policy, PolicyProposal, ProposalHistoryEntry } from '@bot-arena/types';
+import type { RoundMetrics, Policy, PolicyProposal, ProposalHistoryEntry, FeatureAnalysis } from '@bot-arena/types';
 import { env } from './env.js';
 
 const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
@@ -13,6 +13,11 @@ Key metrics you care about:
 - False positive rate (should stay ≤ 5% for acceptance)
 - Human success rate (should stay ≥ 95% for acceptance)
 - Which features triggered most detections
+
+FEATURE ANALYSIS shows which features work:
+- High discrimination ([GOOD]) = increase weight on these
+- [FP RISK] = lower weight or raise threshold
+- Use avg values to tune thresholds (set between bot avg and human avg)
 
 IMPORTANT: Focus on FEATURE WEIGHTS rather than action thresholds. The current policy may have humans scoring ~2.2, so:
 - If humans are being blocked, LOWER weights on features they trigger
@@ -37,6 +42,26 @@ Actions thresholds (allow < throttle < challenge < block):
 - Lowering thresholds = more aggressive (more detections)
 
 Score = sum of (weight) for each feature exceeding threshold.`;
+
+function formatFeatureAnalysis(analysis: FeatureAnalysis[]): string {
+  const sorted = [...analysis].sort((a, b) => b.discriminationScore - a.discriminationScore);
+
+  return sorted.map(f => {
+    const botPct = (f.botTriggerRate * 100).toFixed(0);
+    const humanPct = (f.humanTriggerRate * 100).toFixed(0);
+    const discrim = (f.discriminationScore * 100).toFixed(0);
+
+    let valueInfo = '';
+    if (f.avgBotValue !== null && f.avgHumanValue !== null) {
+      valueInfo = ` (bot avg: ${f.avgBotValue.toFixed(1)}, human avg: ${f.avgHumanValue.toFixed(1)})`;
+    }
+
+    const fpWarning = f.humanTriggerRate > 0.1 ? ' [FP RISK]' : '';
+    const goodDiscrim = f.discriminationScore > 0.5 ? ' [GOOD]' : '';
+
+    return `  ${f.featureName}: bot ${botPct}%, human ${humanPct}% (discrim: +${discrim}%)${valueInfo}${fpWarning}${goodDiscrim}`;
+  }).join('\n');
+}
 
 const proposalTool: Anthropic.Tool = {
   name: 'submit_proposal',
@@ -80,6 +105,9 @@ ${metrics.profiles
       `- ${p.profileType} (${p.isBot ? 'bot' : 'human'}): ${(p.extractionRate * 100).toFixed(1)}% extracted, ${p.blockedRequests} blocked, avg score ${p.avgScore.toFixed(2)}`
   )
   .join('\n')}
+
+Feature effectiveness (sorted by discrimination power):
+${formatFeatureAnalysis(metrics.featureAnalysis)}
 
 ${historySection}
 

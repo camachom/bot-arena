@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import type { RequestLog } from '@bot-arena/types';
+import type { RequestLog, MouseMovement } from '@bot-arena/types';
 
 export interface SessionStore {
   logs: Map<string, RequestLog[]>;
@@ -45,6 +45,27 @@ export function createLoggerMiddleware(store: SessionStore) {
 
     const sessionId = (req.headers['x-session-id'] as string) || 'unknown';
 
+    // Parse mouse movements from header (JSON encoded)
+    let mouseMovements: MouseMovement[] | undefined;
+    const mouseHeader = req.headers['x-mouse-movements'] as string;
+    if (mouseHeader) {
+      try {
+        mouseMovements = JSON.parse(mouseHeader);
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
+
+    // Parse dwell time from header
+    const dwellTimeMs = req.headers['x-dwell-time']
+      ? parseInt(req.headers['x-dwell-time'] as string, 10)
+      : undefined;
+
+    // Parse content length from previous response (sent as header)
+    const contentLength = req.headers['x-prev-content-length']
+      ? parseInt(req.headers['x-prev-content-length'] as string, 10)
+      : undefined;
+
     const log: RequestLog = {
       sessionId,
       timestamp: Date.now(),
@@ -53,6 +74,9 @@ export function createLoggerMiddleware(store: SessionStore) {
       query: req.query as Record<string, string>,
       userAgent: req.headers['user-agent'] || '',
       isAssetRequest: isAssetRequest(req.path),
+      mouseMovements,
+      dwellTimeMs,
+      contentLength,
     };
 
     if (!store.logs.has(sessionId)) {

@@ -1,7 +1,37 @@
 import { chromium, type Browser, type Page } from 'playwright';
 import { v4 as uuidv4 } from 'uuid';
-import type { TrafficProfile, SessionResult, DetectorResult } from '@bot-arena/types';
+import type { TrafficProfile, SessionResult, DetectorResult, MouseMovement } from '@bot-arena/types';
 import { normalRandom, sleep, pickRandom, refineQuery, sampleQueries } from './utils.js';
+
+// Generate human-like mouse movements with natural curves and jitter
+function generateHumanMouseMovements(count: number = 15): MouseMovement[] {
+  const movements: MouseMovement[] = [];
+  let x = Math.random() * 800 + 100;
+  let y = Math.random() * 400 + 100;
+  let timestamp = Date.now();
+
+  // Humans have irregular, curved movements
+  for (let i = 0; i < count; i++) {
+    // Add natural jitter and curves
+    const angle = Math.random() * Math.PI * 2;
+    const distance = normalRandom(50, 30);
+    const curve = normalRandom(0, 0.5); // Add curve factor
+
+    x += Math.cos(angle + curve) * distance + normalRandom(0, 10);
+    y += Math.sin(angle + curve) * distance + normalRandom(0, 10);
+
+    // Keep in bounds
+    x = Math.max(0, Math.min(1200, x));
+    y = Math.max(0, Math.min(800, y));
+
+    // Variable time between movements
+    timestamp += Math.floor(normalRandom(80, 40));
+
+    movements.push({ x: Math.round(x), y: Math.round(y), timestamp });
+  }
+
+  return movements;
+}
 
 export interface SimulatorOptions {
   baseUrl: string;
@@ -42,6 +72,9 @@ export async function runSimulator(options: SimulatorOptions): Promise<Simulator
       Math.round(normalRandom(profile.pagesPerSession.mean, profile.pagesPerSession.stdDev))
     );
 
+    // Track context for correlation features
+    let requestContext: RequestContext = { prevContentLength: 0, prevDwellTime: 0 };
+
     // Check for bounce
     if (Math.random() < profile.bounceRate) {
       // Just visit home page and leave
@@ -56,6 +89,8 @@ export async function runSimulator(options: SimulatorOptions): Promise<Simulator
         const action = pickRandom(['browse', 'search', 'search', 'paginate']);
 
         try {
+          let result: PageVisitResult;
+
           if (action === 'search') {
             // Refine query if using refine strategy
             if (profile.searchBehavior === 'refine' && searchesPerformed > 0) {
@@ -65,7 +100,7 @@ export async function runSimulator(options: SimulatorOptions): Promise<Simulator
             }
 
             const searchUrl = `${baseUrl}/api/products/search?q=${encodeURIComponent(currentQuery)}`;
-            const result = await visitPage(page, searchUrl, profile, sessionId);
+            result = await visitPage(page, searchUrl, profile, sessionId, requestContext);
             pagesRequested++;
             searchesPerformed++;
 
@@ -79,7 +114,7 @@ export async function runSimulator(options: SimulatorOptions): Promise<Simulator
           } else if (action === 'paginate') {
             const pageNum = Math.floor(Math.random() * 3) + 1;
             const paginateUrl = `${baseUrl}/api/products?page=${pageNum}`;
-            const result = await visitPage(page, paginateUrl, profile, sessionId);
+            result = await visitPage(page, paginateUrl, profile, sessionId, requestContext);
             pagesRequested++;
 
             if (result.success) {
@@ -92,7 +127,7 @@ export async function runSimulator(options: SimulatorOptions): Promise<Simulator
           } else {
             // Browse products
             const browseUrl = `${baseUrl}/api/products`;
-            const result = await visitPage(page, browseUrl, profile, sessionId);
+            result = await visitPage(page, browseUrl, profile, sessionId, requestContext);
             pagesRequested++;
 
             if (result.success) {
@@ -109,12 +144,20 @@ export async function runSimulator(options: SimulatorOptions): Promise<Simulator
             await loadAssets(page, baseUrl, sessionId);
           }
 
-          // Dwell time
+          // Dwell time - humans spend time proportional to content length
+          // Base dwell time + extra time per KB of content
+          const contentFactor = result.contentLength > 0 ? Math.log(result.contentLength / 100 + 1) * 500 : 0;
           const dwellTime = Math.max(
             100,
-            normalRandom(profile.dwellTimeMs.mean, profile.dwellTimeMs.stdDev)
+            normalRandom(profile.dwellTimeMs.mean + contentFactor, profile.dwellTimeMs.stdDev)
           );
           await sleep(dwellTime);
+
+          // Update context for next request
+          requestContext = {
+            prevContentLength: result.contentLength,
+            prevDwellTime: Math.round(dwellTime),
+          };
 
           // Click delay before next action
           const clickDelay = Math.max(
@@ -169,28 +212,60 @@ interface PageVisitResult {
   blocked: boolean;
   throttled: boolean;
   challenged: boolean;
+  contentLength: number;
+}
+
+// Track previous request metadata for correlation features
+interface RequestContext {
+  prevContentLength: number;
+  prevDwellTime: number;
 }
 
 async function visitPage(
   page: Page,
   url: string,
   profile: TrafficProfile,
-  sessionId: string
+  sessionId: string,
+  context?: RequestContext
 ): Promise<PageVisitResult> {
   try {
-    const response = await page.request.get(url, {
-      headers: { 'X-Session-Id': sessionId },
-    });
+    // Generate human-like mouse movements
+    const mouseMovements = generateHumanMouseMovements();
+
+    const headers: Record<string, string> = {
+      'X-Session-Id': sessionId,
+      'X-Mouse-Movements': JSON.stringify(mouseMovements),
+    };
+
+    // Include previous request context if available
+    if (context?.prevContentLength) {
+      headers['X-Prev-Content-Length'] = String(context.prevContentLength);
+    }
+    if (context?.prevDwellTime) {
+      headers['X-Dwell-Time'] = String(context.prevDwellTime);
+    }
+
+    const response = await page.request.get(url, { headers });
 
     const blocked = response.status() === 403;
     const throttled = response.status() === 429;
     const challenged = response.headers()['x-challenge-required'] === 'true';
+
+    // Get content length from response
+    let contentLength = 0;
+    try {
+      const body = await response.text();
+      contentLength = body.length;
+    } catch {
+      // Ignore
+    }
 
     return {
       success: response.ok() && !blocked,
       blocked,
       throttled,
       challenged,
+      contentLength,
     };
   } catch {
     return {
@@ -198,6 +273,7 @@ async function visitPage(
       blocked: true,
       throttled: false,
       challenged: false,
+      contentLength: 0,
     };
   }
 }
