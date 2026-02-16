@@ -1,7 +1,7 @@
 {
-  "mode": "headless",
-  "concurrency": 3,
-  "requests_per_minute": 40,
+  "mode": "headed",
+  "concurrency": 2,
+  "requests_per_minute": 30,
   "warmup": true,
   "query_strategy": {
     "type": "refine",
@@ -12,7 +12,7 @@
     "rotate_sessions": true
   },
   "jitter_ms": [
-    500,
-    2000
+    800,
+    3000
   ]
 }
