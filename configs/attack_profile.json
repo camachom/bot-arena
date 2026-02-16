@@ -1,0 +1,15 @@
+{
+  "mode": "headless",
+  "concurrency": 3,
+  "requests_per_minute": 40,
+  "warmup": true,
+  "query_strategy": {
+    "type": "refine",
+    "edit_distance_max": 2
+  },
+  "pagination": {
+    "max_depth_per_session": 3,
+    "rotate_sessions": true
+  },
+  "jitter_ms": [500, 2000]
+}

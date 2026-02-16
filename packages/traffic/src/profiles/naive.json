@@ -1,0 +1,14 @@
+{
+  "name": "naive",
+  "type": "naive",
+  "isBot": true,
+  "pagesPerSession": { "mean": 20, "stdDev": 5 },
+  "dwellTimeMs": { "mean": 100, "stdDev": 50 },
+  "scrollBehavior": "instant",
+  "clickDelay": { "mean": 50, "stdDev": 20 },
+  "loadAssets": false,
+  "searchBehavior": "sequential",
+  "bounceRate": 0,
+  "concurrency": 5,
+  "requestsPerMinute": 60
+}

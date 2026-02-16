@@ -1,0 +1,14 @@
+{
+  "name": "aggressive",
+  "type": "aggressive",
+  "isBot": true,
+  "pagesPerSession": { "mean": 5, "stdDev": 2 },
+  "dwellTimeMs": { "mean": 30000, "stdDev": 10000 },
+  "scrollBehavior": "gradual",
+  "clickDelay": { "mean": 600, "stdDev": 200 },
+  "loadAssets": true,
+  "searchBehavior": "refine",
+  "bounceRate": 0.3,
+  "concurrency": 2,
+  "requestsPerMinute": 15
+}

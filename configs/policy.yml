@@ -1,0 +1,31 @@
+features:
+  reqs_per_min:
+    weight: 1.5
+    threshold: 20
+  unique_queries_per_hour:
+    weight: 2.0
+    threshold: 30
+  pagination_ratio:
+    weight: 1.2
+    threshold: 0.6
+  session_depth:
+    weight: 1.0
+    threshold: 5
+  dwell_time_avg:
+    weight: 1.8
+    threshold: 2000
+  asset_warmup_missing:
+    weight: 3.0
+
+actions:
+  allow:
+    max_score: 2
+  throttle:
+    max_score: 3
+  challenge:
+    max_score: 4
+  block:
+    max_score: 6
+
+constraints:
+  max_false_positive_rate: 0.01

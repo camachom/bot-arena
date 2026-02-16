@@ -1,0 +1,30 @@
+{
+  "name": "@bot-arena/arena",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "arena": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/cli.ts",
+    "start": "tsx src/cli.ts",
+    "demo": "tsx src/cli.ts --rounds 5",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bot-arena/types": "workspace:*",
+    "@bot-arena/target-app": "workspace:*",
+    "@bot-arena/traffic": "workspace:*",
+    "@bot-arena/agent": "workspace:*",
+    "yaml": "^2.3.4",
+    "commander": "^11.1.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  }
+}

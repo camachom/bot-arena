@@ -1,0 +1,12 @@
+{
+  "name": "human",
+  "type": "human",
+  "isBot": false,
+  "pagesPerSession": { "mean": 3, "stdDev": 1.5 },
+  "dwellTimeMs": { "mean": 45000, "stdDev": 20000 },
+  "scrollBehavior": "gradual",
+  "clickDelay": { "mean": 800, "stdDev": 300 },
+  "loadAssets": true,
+  "searchBehavior": "refine",
+  "bounceRate": 0.4
+}

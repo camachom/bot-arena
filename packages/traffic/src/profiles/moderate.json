@@ -1,0 +1,14 @@
+{
+  "name": "moderate",
+  "type": "moderate",
+  "isBot": true,
+  "pagesPerSession": { "mean": 10, "stdDev": 3 },
+  "dwellTimeMs": { "mean": 2000, "stdDev": 1000 },
+  "scrollBehavior": "gradual",
+  "clickDelay": { "mean": 300, "stdDev": 100 },
+  "loadAssets": true,
+  "searchBehavior": "refine",
+  "bounceRate": 0.1,
+  "concurrency": 3,
+  "requestsPerMinute": 30
+}
