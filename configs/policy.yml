@@ -1,10 +1,10 @@
 features:
   reqs_per_min:
-    weight: 1.5
-    threshold: 20
-  unique_queries_per_hour:
     weight: 2
-    threshold: 30
+    threshold: 18
+  unique_queries_per_hour:
+    weight: 2.3
+    threshold: 28
   pagination_ratio:
     weight: 1.2
     threshold: 0.6
