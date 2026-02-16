@@ -342,10 +342,27 @@ function summarizeRedProposal(proposal: AttackProfileProposal): string {
   const changes: string[] = [];
   const c = proposal.changes;
 
+  if (c.mode !== undefined) changes.push(`mode→${c.mode}`);
   if (c.concurrency !== undefined) changes.push(`concurrency→${c.concurrency}`);
   if (c.requests_per_minute !== undefined) changes.push(`rpm→${c.requests_per_minute}`);
   if (c.jitter_ms !== undefined) changes.push(`jitter→${c.jitter_ms[0]}-${c.jitter_ms[1]}ms`);
   if (c.warmup !== undefined) changes.push(`warmup=${c.warmup}`);
+  if (c.query_strategy !== undefined) {
+    const qs = c.query_strategy;
+    if (qs.type !== undefined) changes.push(`query_type→${qs.type}`);
+    if (qs.edit_distance_max !== undefined) changes.push(`edit_dist→${qs.edit_distance_max}`);
+  }
+  if (c.pagination !== undefined) {
+    const p = c.pagination;
+    if (p.max_depth_per_session !== undefined) changes.push(`max_depth→${p.max_depth_per_session}`);
+    if (p.rotate_sessions !== undefined) changes.push(`rotate=${p.rotate_sessions}`);
+  }
+  if (c.evasion !== undefined) {
+    const e = c.evasion;
+    if (e.mouse_style !== undefined) changes.push(`mouse→${e.mouse_style}`);
+    if (e.dwell_content_correlation !== undefined) changes.push(`dwell_corr=${e.dwell_content_correlation}`);
+    if (e.timing_humanization !== undefined) changes.push(`timing_human=${e.timing_humanization}`);
+  }
 
   return changes.length > 0 ? changes.join(', ') : 'no changes';
 }

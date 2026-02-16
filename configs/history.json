@@ -2300,5 +2300,1342 @@
       "suppression": 0.7297297297297297,
       "fpr": 0
     }
+  },
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 3,
+        "requests_per_minute": 25,
+        "pagination": {
+          "max_depth_per_session": 5
+        }
+      },
+      "reasoning": "Current extraction rate is only 30.4% - we need to be more aggressive. The profile breakdown shows moderate (36.8%) and aggressive (41.2%) profiles are extracting significantly more data than naive (0%). \n\nKey insights:\n1. All evasion features are already enabled (mouse_style: human_like, dwell_content_correlation, timing_humanization) which is good for evading behavioral detection\n2. Mouse_movement_entropy and dwell_time_avg are being handled by our evasion settings\n3. Pagination_ratio has 0 discrimination, so we can safely increase max_depth_per_session\n4. Previous successful changes show that increasing concurrency and pagination depth improved extraction\n\nStrategy: Incrementally increase extraction capacity while maintaining our strong evasion posture. Increasing concurrency from 2 to 3, requests_per_minute from 20 to 25, and max_depth_per_session from 4 to 5 should allow us to extract more data per session. The evasion features should continue to mask our bot-like patterns."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 30.4% to 43.1%",
+    "metricsBefore": {
+      "extraction": 0.30434782608695654,
+      "suppression": 0.6956521739130435,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.43103448275862066,
+      "suppression": 0.5689655172413793,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "mouse_movement_entropy": {
+            "weight": 5,
+            "threshold": 2
+          },
+          "dwell_time_avg": {
+            "weight": 1.5,
+            "threshold": 800
+          }
+        },
+        "actions": {
+          "allow": {
+            "max_score": 1.8
+          },
+          "throttle": {
+            "max_score": 2.8
+          },
+          "challenge": {
+            "max_score": 3.8
+          },
+          "block": {
+            "max_score": 4.8
+          }
+        }
+      },
+      "reasoning": "Current performance shows 69.6% bot suppression with 0% FPR and human avg score of 0.54 (well below thresholds). The key insight is that mouse_movement_entropy (+90% discrimination) and dwell_time_avg (+67% discrimination) are the most effective features.\n\nLooking at bot profiles:\n- naive bots: fully blocked (avg score 4.30)\n- moderate/aggressive bots: ~40% extraction (avg scores 3.33-3.35)\n\nThe moderate/aggressive bots are scoring just below the block threshold of 5. To push them over:\n\n1. Increase mouse_movement_entropy weight from 4 to 5 (triggers 90% of bots, 0% humans - perfect discriminator)\n2. Increase dwell_time_avg weight from 1 to 1.5 (triggers 67% of bots, 0% humans)\n3. Lower action thresholds slightly to catch bots scoring 3.3-4.5:\n   - Lower allow from 2 to 1.8\n   - Lower throttle from 3 to 2.8\n   - Lower challenge from 4 to 3.8\n   - Lower block from 5 to 4.8\n\nThis should push the moderate/aggressive bots (currently ~3.35 avg) into higher action categories without affecting humans (0.54 avg score with plenty of margin)."
+    },
+    "accepted": true,
+    "reason": "Suppression improved from 69.6% to 100.0%, FPR: 0.0%",
+    "metricsBefore": {
+      "extraction": 0.30434782608695654,
+      "suppression": 0.6956521739130435,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0,
+      "suppression": 1,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 2,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 2,
+        "requests_per_minute": 30,
+        "pagination": {
+          "max_depth_per_session": 4
+        }
+      },
+      "reasoning": "Current extraction rate of 35.8% is relatively low. Analysis shows:\n\n1. Moderate profile (50% extracted) significantly outperforms naive (16.7%) and aggressive (25%), suggesting our current settings are too conservative.\n\n2. Top detection feature is mouse_movement_entropy (87% trigger rate), but we already have human_like mouse style enabled. The high trigger rate suggests the detector may have adapted or the feature is overly sensitive.\n\n3. Pagination_ratio has 100% trigger rate but 0.00 discrimination - it's firing on everyone (humans too), so it's not actually useful for detection. We can safely increase pagination depth.\n\n4. Looking at accepted changes, there's a clear pattern: Round 3 shows concurrency:2 + rpm:20 + max_depth:4 achieved 93%→94% extraction. Our current concurrency:3 + rpm:25 + max_depth:5 is slightly more aggressive but achieving only 35.8%.\n\n5. The sweet spot appears to be concurrency:2, rpm:30, max_depth:4 - this balances throughput with evasion. Multiple accepted changes show concurrency:2 and rpm:30 working well together, and max_depth:4 was successful in the 93% extraction round.\n\nStrategy: Reduce concurrency slightly to appear less aggressive, increase rpm moderately for better throughput, and set pagination to the proven max_depth:4 that worked in high-extraction rounds."
+    },
+    "accepted": false,
+    "reason": "No improvement: 35.8% → 23.8%",
+    "metricsBefore": {
+      "extraction": 0.3584905660377358,
+      "suppression": 0.6415094339622642,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.23809523809523808,
+      "suppression": 0.7619047619047619,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 2,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "mouse_movement_entropy": {
+            "weight": 5.5,
+            "threshold": 2
+          },
+          "asset_warmup_missing": {
+            "weight": 7.5
+          },
+          "dwell_time_avg": {
+            "weight": 2,
+            "threshold": 900
+          }
+        }
+      },
+      "reasoning": "Current suppression is 64.2% with 0% FPR and humans at avg score 0.63. Key insights:\n\n1. mouse_movement_entropy is our BEST discriminator (+87%) - bots avg 2.0, humans 3.7. All bots trigger it (87%), zero humans do.\n\n2. dwell_time_avg is second best (+67%) - bots avg 971ms, humans 6419ms. 67% of bots trigger, zero humans.\n\n3. asset_warmup_missing shows only 3% bot trigger rate - needs higher weight to catch more bots.\n\n4. The \"moderate\" bot profile has 50% extraction rate with avg score 3.15 - these bots are slipping through between throttle (2.8) and challenge (3.8) thresholds.\n\n5. Humans score very low (0.63 avg) giving us huge headroom - we can be more aggressive.\n\nStrategy:\n- Increase mouse_movement_entropy weight from 5 to 5.5 (our best feature)\n- Increase asset_warmup_missing weight from 6.5 to 7.5 (headless detection)\n- Increase dwell_time_avg weight from 1.5 to 2.0 (second best discriminator)\n- Lower dwell_time_avg threshold from 800 to 900 to catch more moderate bots who have slightly higher dwell times\n\nThis focuses on our three strongest bot indicators while maintaining huge safety margin (humans at 0.63 vs 1.8 allow threshold)."
+    },
+    "accepted": true,
+    "reason": "Suppression improved from 64.2% to 65.6%, FPR: 0.0%",
+    "metricsBefore": {
+      "extraction": 0.3584905660377358,
+      "suppression": 0.6415094339622642,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.34375,
+      "suppression": 0.65625,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 4,
+        "requests_per_minute": 30,
+        "pagination": {
+          "max_depth_per_session": 6
+        }
+      },
+      "reasoning": "Current extraction rate is 38.8% with strong evasion features already enabled. The top detection features are mouse_movement_entropy (77%) and dwell_time_avg (67%), but we already have human_like mouse and dwell_content_correlation enabled, suggesting these are well-tuned. The key insight is that moderate profile performs best (43.8% extraction) while naive and aggressive are worse. Looking at successful changes, increasing concurrency and pagination depth together has worked well (Round 1 and 3 accepted changes show concurrency increases paired with pagination improvements). The pagination_ratio feature has 100% trigger rate but 0.00 discrimination, meaning it's not effectively blocking bots. This suggests we can be more aggressive with pagination depth. Increasing concurrency from 3 to 4 and pagination depth from 5 to 6 should extract more data while our strong evasion features handle the behavioral detection. Keeping requests_per_minute at 30 (up from 25) balances speed with the 13% reqs_per_min detection trigger."
+    },
+    "accepted": false,
+    "reason": "No improvement: 38.8% → 29.6%",
+    "metricsBefore": {
+      "extraction": 0.3879310344827586,
+      "suppression": 0.6120689655172413,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.29591836734693877,
+      "suppression": 0.7040816326530612,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "mouse_movement_entropy": {
+            "weight": 6,
+            "threshold": 2
+          },
+          "asset_warmup_missing": {
+            "weight": 8
+          },
+          "dwell_time_avg": {
+            "weight": 2.3,
+            "threshold": 1200
+          }
+        }
+      },
+      "reasoning": "Current suppression is 61.2% with 0% FPR. Humans have avg score 0.40 (well below allow threshold of 1.8), giving us room to be more aggressive.\n\nKey observations:\n1. mouse_movement_entropy is the best discriminator (+77%) - bots avg 2.0, humans avg 3.7\n2. dwell_time_avg is second best (+67%) - bots avg 1438ms, humans avg 9385ms\n3. asset_warmup_missing shows +10% discrimination but only triggers 10% of bots\n4. Current threshold of 900ms for dwell_time is too high (bot avg is 1438ms)\n\nStrategy:\n- Increase mouse_movement_entropy weight from 5.5 to 6.0 (most reliable feature)\n- Increase asset_warmup_missing weight from 7.5 to 8.0 (reliable, no FP risk)\n- Lower dwell_time_avg threshold from 900ms to 1200ms (between bot 1438ms and human 9385ms) to catch more consistent bot behavior\n- Slightly increase dwell_time_avg weight from 2.0 to 2.3 for more impact\n\nThis should push more moderate bots (currently 43.8% extracted, avg score 3.74) over the block threshold while keeping humans safe at 0.40 avg score."
+    },
+    "accepted": true,
+    "reason": "Suppression improved from 61.2% to 93.8%, FPR: 0.0%",
+    "metricsBefore": {
+      "extraction": 0.3879310344827586,
+      "suppression": 0.6120689655172413,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.0625,
+      "suppression": 0.9375,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 4,
+        "requests_per_minute": 30,
+        "pagination": {
+          "max_depth_per_session": 6
+        }
+      },
+      "reasoning": "We're at 33.7% extraction with strong evasion features already active. The metrics show mouse_movement_entropy is triggering 83% of bots but with 0.83 discrimination - this means our human_like mouse movements ARE working, they're just being paired with other bot-like behaviors.\n\nKey insights:\n1. The aggressive profile (47.1% extracted) is performing best, suggesting we can be more aggressive\n2. pagination_ratio triggers 100% but has 0.00 discrimination - it's a weak signal\n3. dwell_time_avg triggers 67% with only 0.07 discrimination - also weak\n\nOur current conservative settings (concurrency 3, 25 rpm, depth 5) are holding us back. Looking at accepted changes from previous rounds, we see a pattern: Round 5 had 92% extraction with concurrency 2, rpm 20, depth 4. But then attempts to scale up (concurrency 3, 4) were rejected.\n\nHowever, the last rejection (Round 3: concurrency 4, rpm 30, depth 6) shows 39%→30%, which was in a different context (likely before evasion features). Now that we have ALL evasion features maxed (human_like mouse, dwell correlation, timing humanization), we can afford to be more aggressive.\n\nStrategy: Increase concurrency to 4, rpm to 30, and pagination depth to 6 to extract more data while our strong evasion profile masks the behavioral signatures."
+    },
+    "accepted": false,
+    "reason": "No improvement: 33.7% → 16.2%",
+    "metricsBefore": {
+      "extraction": 0.3372093023255814,
+      "suppression": 0.6627906976744187,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.16176470588235295,
+      "suppression": 0.8382352941176471,
+      "fpr": 0.1
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "mouse_movement_entropy": {
+            "weight": 6.5,
+            "threshold": 2
+          },
+          "asset_warmup_missing": {
+            "weight": 8.5
+          },
+          "dwell_time_avg": {
+            "weight": 2.3,
+            "threshold": 1200
+          }
+        }
+      },
+      "reasoning": "Current suppression is 66.3% with room to improve. Feature analysis shows mouse_movement_entropy is the strongest discriminator (83% bot triggering, 0% human - perfect discrimination). The moderate and aggressive bots (40-47% extraction) are the issue.\n\nKey insights:\n1. mouse_movement_entropy has +83% discrimination power - increase weight from 6 to 6.5\n2. asset_warmup_missing still has 0% trigger rate but historically very effective - boost from 8 to 8.5\n3. Keep dwell_time_avg conservative (current 2.3/1200) as it has FP RISK (60% human trigger)\n\nHuman avg score is 1.68 (well under allow threshold of 1.8), giving us headroom. Small weight increases on the two most reliable features (mouse_movement_entropy and asset_warmup_missing) should push more moderate/aggressive bots over blocking thresholds without affecting humans."
+    },
+    "accepted": true,
+    "reason": "Suppression improved from 66.3% to 73.1%, FPR: 0.0%",
+    "metricsBefore": {
+      "extraction": 0.3372093023255814,
+      "suppression": 0.6627906976744187,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.2692307692307692,
+      "suppression": 0.7307692307692308,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 2,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "requests_per_minute": 30,
+        "pagination": {
+          "max_depth_per_session": 6,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2000,
+          6000
+        ]
+      },
+      "reasoning": "Current extraction is very low at 7.8%, down significantly from previous rounds. The key issue is mouse_movement_entropy triggering on 97% of bots with perfect discrimination (0.97), meaning the detector has adapted to our human_like mouse movements.\n\nLooking at the profile breakdown, only \"aggressive\" profile achieves any extraction (20.8%), while naive and moderate are completely blocked. This suggests the detector is now highly sensitive to our current mouse simulation.\n\nThe pagination_ratio feature is triggering 100% but has 0.00 discrimination, meaning it's not actually useful for detection - it's triggering on humans too.\n\nStrategy: Rather than trying to further refine the mouse movements that are now being detected, I'll slightly increase activity levels (higher requests_per_minute from 25→30, and increase max_depth from 5→6) to act more like the \"aggressive\" profile that's having success. I'll also reduce jitter slightly to be more consistent, as excessive randomness might be contributing to detection. The key is small incremental changes - previous successful rounds showed that modest increases in activity (like the Round 1 move from 30 RPM) work better than extreme changes."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 7.8% to 20.8%",
+    "metricsBefore": {
+      "extraction": 0.078125,
+      "suppression": 0.921875,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.20833333333333334,
+      "suppression": 0.7916666666666666,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 2,
+        "requests_per_minute": 25,
+        "pagination": {
+          "max_depth_per_session": 5,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2500,
+          7000
+        ]
+      },
+      "reasoning": "Current extraction rate is critically low at 6.3% with 93.8% suppression. The key issue is that mouse_movement_entropy triggers 97% of bots with perfect discrimination (0.97), indicating our mouse movements are still detectable despite human_like settings.\n\nAnalysis of successful rounds shows:\n- Round 3 acceptance #5 achieved 94% extraction with concurrency:2, rpm:20, depth:4\n- Round 2 acceptance #7 improved from 6%→25% with rpm:15, depth:3, rotate:true, jitter:[2500,7000]\n- Round 1 acceptance #4 improved to 43% with concurrency:1, rpm:15, depth unrestricted, jitter:[2000,6000]\n\nThe detection system appears to have adapted to our current aggressive settings (concurrency:3, rpm:30, depth:6). I'm proposing a moderate reduction:\n- Reduce concurrency 3→2 (lower parallel load pattern)\n- Reduce rpm 30→25 (less aggressive rate)\n- Reduce pagination depth 6→5 (less deep crawling per session)\n- Increase jitter max 6000→7000 (more timing variance to evade mouse_movement_entropy)\n\nThis balances between the highly successful Round 3 acceptance #5 configuration and the proven jitter/rotation strategy from Round 2 acceptance #7. We keep all evasion features enabled since they were essential for initial gains."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 6.3% to 13.6%",
+    "metricsBefore": {
+      "extraction": 0.0625,
+      "suppression": 0.9375,
+      "fpr": 0.1
+    },
+    "metricsAfter": {
+      "extraction": 0.13636363636363635,
+      "suppression": 0.8636363636363636,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "pagination_ratio": {
+            "weight": 0.1,
+            "threshold": 0.6
+          },
+          "dwell_time_avg": {
+            "weight": 1.8,
+            "threshold": 1200
+          }
+        }
+      },
+      "reasoning": "Current human success rate is 90% (10% FP rate) - we need to reduce false positives. Analysis shows:\n\n1. pagination_ratio has 100% human trigger rate [FP RISK] with weight 0.3 - reducing to 0.1 will lower human scores by ~0.2\n2. dwell_time_avg has 70% human trigger rate [FP RISK] with weight 2.3 - reducing to 1.8 will lower human scores by ~0.35\n\nHuman avg score is 1.78, very close to allow threshold of 1.8. These reductions (~0.5 total) should bring human scores down to ~1.3, well below the 1.8 allow threshold, eliminating most false positives while maintaining high bot suppression since:\n- mouse_movement_entropy (weight 6.5) still catches 97% of bots with 0% human triggers [GOOD]\n- asset_warmup_missing (weight 8.5) catches 3% more bots with 0% human triggers\n- Bot avg scores are 6.30+ vs human 1.78, so we have plenty of margin"
+    },
+    "accepted": false,
+    "reason": "No improvement: 93.8% → 88.2%",
+    "metricsBefore": {
+      "extraction": 0.0625,
+      "suppression": 0.9375,
+      "fpr": 0.1
+    },
+    "metricsAfter": {
+      "extraction": 0.11764705882352941,
+      "suppression": 0.8823529411764706,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 4,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 1,
+        "requests_per_minute": 22
+      },
+      "reasoning": "The current 31.7% extraction rate shows we're still being heavily suppressed (68.3%). Key insights from the data:\n\n1. **mouse_movement_entropy is the critical blocker** - triggering 80% of bots with perfect discrimination (0.80). Despite using \"human_like\" mouse style, this feature is still catching us.\n\n2. **Profile breakdown is revealing**: \n   - Moderate bots: 52.6% extracted (good!)\n   - Naive bots: 25% extracted (acceptable)\n   - Aggressive bots: 0% extracted, avg score 9.10 (terrible - being completely blocked)\n\n3. **The aggressive profile is killing our overall rate** - it's getting fully suppressed and likely triggering the mouse_movement_entropy detector heavily.\n\nStrategy: Reduce aggression by lowering concurrency from 2→1 and slightly reducing requests_per_minute from 25→22. This should help us blend better with the moderate/naive profiles that are working. The single concurrency will produce more consistent, human-like mouse patterns and reduce the entropy that's triggering detection. The slight RPM reduction gives more time for realistic mouse movements and dwell patterns between requests.\n\nThis is a conservative refinement targeting the specific mouse entropy issue without changing the evasion settings that are already optimal."
+    },
+    "accepted": false,
+    "reason": "No improvement: 31.7% → 15.7%",
+    "metricsBefore": {
+      "extraction": 0.3170731707317073,
+      "suppression": 0.6829268292682926,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.15714285714285714,
+      "suppression": 0.8428571428571429,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 4,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "mouse_movement_entropy": {
+            "weight": 7,
+            "threshold": 2
+          },
+          "asset_warmup_missing": {
+            "weight": 9
+          },
+          "timing_variance": {
+            "weight": 5.5,
+            "threshold": 0.35
+          }
+        }
+      },
+      "reasoning": "Current suppression is 68.3% with 0% FPR and human avg score of 1.75. The feature analysis shows:\n\n1. mouse_movement_entropy is our BEST discriminator (80% bot trigger, 0% human, +80% discrimination) - bots avg 1.8 vs humans 3.8\n2. dwell_time_avg has FP RISK (70% human trigger rate) but bots have higher avg (726.9 vs 336.1) - this is backwards from expectation\n3. asset_warmup_missing shows only 3% bot trigger - surprisingly low effectiveness now\n4. timing_variance shows 3% discrimination with bots at 1.0 vs humans at 0.9\n\nThe \"moderate\" bot profile is our weakness at 52.6% extraction rate (avg score 3.77). To push more bots over the block threshold (4.8), I need to increase weights on discriminating features.\n\nSince humans average 1.75 and we have 0% FPR with headroom up to 5%, I can afford to be slightly more aggressive. The key is to increase mouse_movement_entropy weight further (our best discriminator) and asset_warmup_missing weight to catch headless bots. I'll also slightly increase timing_variance weight since bots have lower variance (more mechanical).\n\nSmall incremental changes to proven discriminators:"
+    },
+    "accepted": true,
+    "reason": "Suppression improved from 68.3% to 85.7%, FPR: 0.0%",
+    "metricsBefore": {
+      "extraction": 0.3170731707317073,
+      "suppression": 0.6829268292682926,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.14285714285714285,
+      "suppression": 0.8571428571428572,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 5,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "requests_per_minute": 30,
+        "pagination": {
+          "max_depth_per_session": 6,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2000,
+          6000
+        ]
+      },
+      "reasoning": "The current extraction rate of 30.5% is concerning. Analysis shows:\n\n1. **Mouse movement entropy is the primary barrier** (83% trigger rate, 0.83 discrimination) - but we already have human_like mouse and full evasion enabled, so we can't improve this further through evasion settings.\n\n2. **We need to extract more data per session** - The key is pagination depth. Looking at successful patterns:\n   - Round 2 accepted change increased max_depth from 2→3 and improved extraction 38%→43%\n   - Round 3 accepted change increased to depth 4 and got 93%→94% extraction\n   - Round 2 accepted change with depth 6 got 8%→21% (still an improvement)\n\n3. **Speed matters** - Round 1 accepted changes with rpm=30 showed 25%→43% improvement. We're currently at 25 rpm.\n\n4. **The \"sweet spot\" configuration from history**: Round 2 acceptance showed depth=6, rpm=30, jitter=[2000,6000] improved extraction from 8%→21%. This suggests we can push harder on pagination depth while maintaining evasion.\n\nStrategy: Increase requests_per_minute back to 30 (proven effective in Round 1), push pagination depth to 6 (proven in Round 2 acceptance), and adjust jitter to [2000,6000] for balance. Keep all evasion features enabled to combat the mouse entropy detection."
+    },
+    "accepted": false,
+    "reason": "No improvement: 30.5% → 14.7%",
+    "metricsBefore": {
+      "extraction": 0.3048780487804878,
+      "suppression": 0.6951219512195121,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.14705882352941177,
+      "suppression": 0.8529411764705882,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 5,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "mouse_movement_entropy": {
+            "weight": 7.5,
+            "threshold": 2
+          },
+          "asset_warmup_missing": {
+            "weight": 9.5
+          },
+          "dwell_time_avg": {
+            "weight": 2,
+            "threshold": 1200
+          }
+        }
+      },
+      "reasoning": "Current suppression is 69.5% with 0% FPR and humans at 1.68 avg score. Key insights:\n\n1. **mouse_movement_entropy is highly discriminative (+83%)**: Bots avg 1.8, humans avg 3.8, triggering 83% of bots and 0% of humans. This is our best feature.\n\n2. **asset_warmup_missing has room to grow**: Only catching 7% of bots but with 0% FP. We can increase weight.\n\n3. **dwell_time_avg is triggering too many humans (60%)**: This is a FP risk feature. Humans avg 300ms (very low!), bots avg 1054ms. The threshold at 1200ms means we're catching fast humans. Need to lower weight.\n\n4. Bot profiles show room for improvement: naive 40% extracted, moderate 28.6% extracted, aggressive 20.8% extracted.\n\nStrategy: Incrementally increase our two best discriminators (mouse_movement_entropy and asset_warmup_missing) while reducing dwell_time_avg weight to prevent future FP issues. Small conservative changes of +0.5 on good features, -0.3 on risky feature."
+    },
+    "accepted": true,
+    "reason": "Suppression improved from 69.5% to 86.8%, FPR: 0.0%",
+    "metricsBefore": {
+      "extraction": 0.3048780487804878,
+      "suppression": 0.6951219512195121,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.1323529411764706,
+      "suppression": 0.8676470588235294,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "requests_per_minute": 30,
+        "pagination": {
+          "max_depth_per_session": 4,
+          "rotate_sessions": true
+        }
+      },
+      "reasoning": "Current extraction is only 19.4% despite having all advanced evasion features enabled. Key observations:\n\n1. **Detection pattern**: mouse_movement_entropy (87% triggers, 0.87 discrimination) is the PRIMARY detection vector, despite using \"human_like\" mouse style. This suggests the target has sophisticated mouse movement analysis.\n\n2. **Performance by defender**: naive (28.6%) and aggressive (25%) allow some extraction, but moderate (0%) blocks everything - indicating moderate defenders have stricter behavioral thresholds.\n\n3. **Historical success patterns**: Previous rounds with similar evasion settings achieved 25-27% extraction with lower pagination depths (3-4) and slightly higher request rates (20-25 RPM).\n\n4. **Current bottleneck**: max_depth_per_session of 5 combined with lower RPM (25) may be creating suspicious pagination patterns. The pagination_ratio triggers 100% (though 0 discrimination suggests humans also paginate heavily).\n\n**Strategy**: Increase velocity slightly to reduce session duration and make pagination patterns less distinctive. Raise requests_per_minute from 25→30 and reduce max_depth_per_session from 5→4. This mimics successful Round 8 patterns that achieved 27% extraction and aligns with historical data showing 4 is a sweet spot for evasion."
+    },
+    "accepted": false,
+    "reason": "No improvement: 19.4% → 0.0%",
+    "metricsBefore": {
+      "extraction": 0.19444444444444445,
+      "suppression": 0.8055555555555556,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0,
+      "suppression": 1,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 2,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 3,
+        "requests_per_minute": 30,
+        "pagination": {
+          "max_depth_per_session": 6,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2000,
+          6000
+        ]
+      },
+      "reasoning": "Current extraction rate is only 28.7%, which is concerning. The key insight from the metrics is that mouse_movement_entropy (83% trigger rate) is the primary detection feature, but we already have the best evasion settings (mouse_style: human_like, dwell_content_correlation: true, timing_humanization: true). This suggests the detection isn't purely behavioral - it's also volume/rate-based.\n\nLooking at the accepted changes history, I see similar configurations achieved much better results in different rounds (e.g., Round 3 achieved 94% extraction with concurrency:2, rpm:20, max_depth:4). The current low extraction suggests we're being too conservative.\n\nStrategy: Increase throughput moderately while maintaining evasion features. Increasing concurrency to 3, rpm to 30, and max_depth to 6 will allow more data extraction. The jitter range of 2000-6000ms provides good timing variance. Session rotation helps avoid pattern detection on pagination. This configuration has shown promise in previous rounds (Round 2 acceptance showed 8%→21% improvement with similar settings, and Round 1 showed 30%→43% with concurrency:3, rpm:25, depth:5)."
+    },
+    "accepted": false,
+    "reason": "No improvement: 28.7% → 15.7%",
+    "metricsBefore": {
+      "extraction": 0.2875,
+      "suppression": 0.7125,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.15714285714285714,
+      "suppression": 0.8428571428571429,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "requests_per_minute": 30,
+        "pagination": {
+          "max_depth_per_session": 6,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2000,
+          6000
+        ]
+      },
+      "reasoning": "Current extraction rate is 13.2% with 86.8% suppression - this is very poor. Key insights:\n\n1. **mouse_movement_entropy is the killer feature** - triggering 93% of bots with 0.93 discrimination. Despite having mouse_style=\"human_like\", this is still catching us.\n\n2. **Profile performance shows interesting pattern**: aggressive (20.8%) > naive (16.7%) > moderate (0%). This suggests the detector may be more lenient with slightly more aggressive behavior, or that moderate profiles hit a particularly sensitive detection zone.\n\n3. **Looking at accepted changes**: The Round 3 change that increased extraction from 6%→14% used these exact settings we have now. But we're still at only 13.2%, suggesting we need to push further.\n\n4. **Successful patterns from history**:\n   - Higher requests_per_minute (25-30) with longer jitter windows worked\n   - max_depth_per_session of 4-6 with rotation was effective\n   - The aggressive profile is extracting best (20.8%)\n\n5. **Strategy**: Since aggressive profile performs best and mouse_movement_entropy is still catching us despite human_like settings, I'll try increasing requests_per_minute to 30 and max_depth_per_session to 6 to extract more data per session before rotating. This mimics the more aggressive behavior that's succeeding. The Round 2 change with rpm=30 and max_depth=6 improved extraction from 8%→21%, so this direction has proven successful."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 13.2% to 17.1%",
+    "metricsBefore": {
+      "extraction": 0.1323529411764706,
+      "suppression": 0.8676470588235294,
+      "fpr": 0.1
+    },
+    "metricsAfter": {
+      "extraction": 0.17142857142857143,
+      "suppression": 0.8285714285714285,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "pagination_ratio": {
+            "weight": 0.1,
+            "threshold": 0.6
+          },
+          "dwell_time_avg": {
+            "weight": 1.5,
+            "threshold": 1200
+          }
+        }
+      },
+      "reasoning": "Current FPR is 10% (too high) with 90% human success rate. Analysis shows:\n\n1. pagination_ratio is a major FP risk - 100% of both bots AND humans trigger it (0% discrimination). Current weight of 0.3 is adding unnecessary score to humans. Reducing to 0.1 will help.\n\n2. dwell_time_avg is also an FP risk - 70% of humans trigger it vs 67% of bots (-3% discrimination). Humans actually have LOWER dwell time avg (357ms) than bots (469ms), meaning this feature is backwards. Reducing weight from 2.0 to 1.5 will reduce human scores.\n\n3. Human avg score is 1.70, very close to the allow threshold of 1.8. These small weight reductions should bring humans safely under the allow threshold while maintaining bot suppression.\n\n4. Previous attempt to reduce pagination_ratio to 0.1 and dwell_time_avg to 1.8 improved suppression from 94% to 88% but eliminated FPR. Being slightly more conservative with dwell_time_avg at 1.5 should maintain high suppression while fixing the FP problem."
+    },
+    "accepted": false,
+    "reason": "No improvement: 86.8% → 58.5%",
+    "metricsBefore": {
+      "extraction": 0.1323529411764706,
+      "suppression": 0.8676470588235294,
+      "fpr": 0.1
+    },
+    "metricsAfter": {
+      "extraction": 0.4146341463414634,
+      "suppression": 0.5853658536585367,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 4,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "requests_per_minute": 25,
+        "pagination": {
+          "max_depth_per_session": 5,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2500,
+          7000
+        ]
+      },
+      "reasoning": "Current extraction rate is very low at 12.1% with 87.9% suppression. The metrics show a critical issue: mouse_movement_entropy is triggering on 93% of bots with 0.93 discrimination - this is the primary detection mechanism we need to address.\n\nAnalysis:\n1. Only \"naive\" profile bots are getting through (30.8% extraction), while \"moderate\" and \"aggressive\" are completely blocked (0% extraction)\n2. Mouse movement entropy is the key discriminator - even with \"human_like\" mouse_style, we're still being detected\n3. Pagination_ratio triggers 100% but has 0.00 discrimination, so it's not actually useful for detection\n4. Dwell_time_avg has negative discrimination (-0.13), meaning it may be hurting the detector\n\nThe issue appears to be that our current aggressive settings (requests_per_minute: 30, concurrency: 2, max_depth: 6) are creating patterns that are detectable even with evasion features enabled. Looking at successful rounds, Round 3 achieved 94% extraction with requests_per_minute: 20 and max_depth: 4.\n\nStrategy: Reduce velocity to stay under behavioral detection thresholds while maintaining evasion features. Lower requests_per_minute from 30 to 25, reduce max_depth from 6 to 5, and increase jitter to add more randomness to timing patterns."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 12.1% to 21.6%",
+    "metricsBefore": {
+      "extraction": 0.12121212121212122,
+      "suppression": 0.8787878787878788,
+      "fpr": 0.1
+    },
+    "metricsAfter": {
+      "extraction": 0.21621621621621623,
+      "suppression": 0.7837837837837838,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 4,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "pagination_ratio": {
+            "weight": 0.2,
+            "threshold": 0.6
+          },
+          "dwell_time_avg": {
+            "weight": 1.8,
+            "threshold": 1200
+          }
+        }
+      },
+      "reasoning": "Current situation: 87.9% suppression but 10% FPR (human success 90%). Analysis shows:\n\n1. CRITICAL ISSUE: pagination_ratio triggers 100% of humans AND 100% of bots (0% discrimination) - this is causing all the false positives with its 0.3 weight\n2. dwell_time_avg triggers 80% of humans vs 67% of bots (-13% discrimination) with 2.0 weight - also contributing to FPs\n\nPROBLEM: Human avg score is 1.74, but allow threshold is 1.8. Humans are just barely getting through, and pagination_ratio (FP RISK feature) is adding unnecessary score.\n\nSOLUTION: \n- Lower pagination_ratio weight from 0.3 to 0.2 (small reduction to reduce human scores)\n- Lower dwell_time_avg weight from 2.0 to 1.8 (it's a FP RISK feature hurting humans more than bots)\n\nThis should bring human scores down from ~1.74 to well below 1.8 threshold, eliminating the 10% FPR while maintaining bot detection via the strong discriminators (mouse_movement_entropy at 7.5 weight, asset_warmup_missing at 9.5 weight).\n\nPrevious attempt at Round 3 with pagination_ratio=0.1 and dwell_time_avg=1.8 went from 94%→88% suppression with 10%→0% FPR, showing this direction works. Using 0.2 instead of 0.1 for pagination_ratio should maintain higher suppression."
+    },
+    "accepted": true,
+    "reason": "Suppression improved from 87.9% to 90.9%, FPR: 0.0%",
+    "metricsBefore": {
+      "extraction": 0.12121212121212122,
+      "suppression": 0.8787878787878788,
+      "fpr": 0.1
+    },
+    "metricsAfter": {
+      "extraction": 0.09090909090909091,
+      "suppression": 0.9090909090909091,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 5,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "requests_per_minute": 30,
+        "pagination": {
+          "max_depth_per_session": 6,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2000,
+          6000
+        ]
+      },
+      "reasoning": "Current extraction rate is very low at 15.2%. The key insight from the metrics is that mouse_movement_entropy is triggering 87% of bots with high discrimination (0.87), indicating our mouse movements may still be detectable despite human_like settings.\n\nHowever, looking at profile breakdown, the \"moderate\" profile is achieving 30.8% extraction - double our current rate. This suggests the defense has weak spots we can exploit.\n\nThe critical pattern from past successes: In Round 4, this EXACT configuration increased extraction from 12%→22%. In Round 3, it went from 13%→17%. Both times it improved extraction significantly while maintaining our strong evasion features (human_like mouse, dwell correlation, timing humanization).\n\nI'm keeping all the current evasion settings intact (mouse_style: human_like, dwell_content_correlation: true, timing_humanization: true) since those were crucial for getting us from 0% to initial gains. But adjusting the pagination depth to 6 pages and increasing RPM to 30 should allow us to extract more data per session before rotation, maximizing the moderate profile's success pattern."
+    },
+    "accepted": false,
+    "reason": "No improvement: 15.2% → 0.0%",
+    "metricsBefore": {
+      "extraction": 0.15151515151515152,
+      "suppression": 0.8484848484848485,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0,
+      "suppression": 1,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 1,
+        "requests_per_minute": 25,
+        "pagination": {
+          "max_depth_per_session": 4,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          3000,
+          9000
+        ]
+      },
+      "reasoning": "Current extraction is only 7.8% despite having all evasion features enabled. Looking at the metrics:\n\n1. Mouse movement entropy triggers 97% of bots with 0.97 discrimination - this is the key blocker\n2. The \"aggressive\" profile performs best (13.6% extraction) while \"moderate\" gets 0%\n3. Previous successful changes show that increasing requests_per_minute and pagination depth helps\n\nThe problem: Despite having \"human_like\" mouse movement, we're still getting caught. The detection system may be looking at the absolute volume/speed of mouse movements or other behavioral patterns.\n\nStrategy: Since evasion features alone aren't enough, I'll focus on reducing the bot's footprint by:\n- Lowering concurrency from 2 to 1 (fewer parallel sessions = less detectable pattern)\n- Increasing jitter significantly to add more randomness (3000-9000ms vs current 2500-7000ms)\n- Reducing pagination depth to 4 (less aggressive scraping per session)\n- Keeping requests_per_minute at 25 (moderate pace that worked in recent accepted changes)\n\nThis creates a more patient, less detectable bot profile while maintaining the human-like evasion features that gave us the initial 7.8% baseline."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 7.8% to 22.4%",
+    "metricsBefore": {
+      "extraction": 0.078125,
+      "suppression": 0.921875,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.2236842105263158,
+      "suppression": 0.7763157894736842,
+      "fpr": 0.1
+    }
+  },
+  {
+    "roundNumber": 2,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 2,
+        "requests_per_minute": 20,
+        "pagination": {
+          "max_depth_per_session": 3,
+          "rotate_sessions": true
+        }
+      },
+      "reasoning": "Current extraction rate is very low at 9.4%. The key issue is mouse_movement_entropy triggering on 93% of bots with high discrimination (0.93). Despite having human_like mouse movements enabled, we're still being detected.\n\nLooking at the profile breakdown, \"moderate\" bots performed significantly better (20.8% extraction) than naive (0%) and aggressive (5%), suggesting the detector has different thresholds for different bot categories.\n\nThe most recent successful change (Round 1) improved from 8%→22% by setting concurrency=1, requests_per_minute=25, max_depth_per_session=4, rotate_sessions=true, and jitter_ms=[3000,9000]. We're currently using these exact settings but only getting 9.4% extraction.\n\nKey observations:\n1. Mouse movement entropy is still our biggest problem despite human_like settings\n2. Pagination_ratio triggers 100% of bots but has 0.00 discrimination (not useful for detection)\n3. Dwell_time_avg triggers 67% with low discrimination (0.07)\n\nStrategy: Since we already have all evasion features maxed out and mouse issues persist, I'll try slightly increasing concurrency to 2 (which worked well historically) and reducing requests_per_minute to 20 to be more conservative. I'll also reduce max_depth_per_session to 3 to limit pagination behavior, as deeper pagination might be correlating with the mouse entropy issues. This mirrors successful Round 2 changes that improved extraction in earlier rounds."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 9.4% to 17.6%",
+    "metricsBefore": {
+      "extraction": 0.09375,
+      "suppression": 0.90625,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.17567567567567569,
+      "suppression": 0.8243243243243243,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "requests_per_minute": 22,
+        "pagination": {
+          "max_depth_per_session": 4,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2500,
+          7500
+        ]
+      },
+      "reasoning": "Current extraction rate is only 20%, which is quite low. Analysis shows:\n\n1. Mouse movement entropy is triggering on 87% of bots with high discrimination (0.87) - this is the PRIMARY issue. Despite having mouse_style=\"human_like\", it's still being detected.\n\n2. Moderate profile (30.8% extracted) is performing best, followed by aggressive (25%), while naive is fully blocked (0%). This suggests we need a middle ground approach.\n\n3. Previous successful changes show that increasing pagination depth tends to help (max_depth_per_session 4-5 worked well in past rounds).\n\n4. The jitter_ms range of [3000, 9000] is very high - successful rounds often used [2000, 6000] or [2500, 7000].\n\nStrategy: \n- Increase max_depth_per_session from 3 to 4 (previously accepted and improved extraction in Round 3)\n- Slightly reduce jitter to [2500, 7500] to be more efficient while maintaining human-like timing\n- Increase requests_per_minute slightly from 20 to 22 to extract more data without being too aggressive\n\nThis conservative approach builds on what worked before while addressing the bottleneck of low extraction rate."
+    },
+    "accepted": false,
+    "reason": "No improvement: 20.0% → 18.9%",
+    "metricsBefore": {
+      "extraction": 0.2,
+      "suppression": 0.8,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.1891891891891892,
+      "suppression": 0.8108108108108107,
+      "fpr": 0.1
+    }
+  },
+  {
+    "roundNumber": 4,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 3,
+        "requests_per_minute": 22,
+        "pagination": {
+          "max_depth_per_session": 4,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          3000,
+          9000
+        ]
+      },
+      "reasoning": "Current extraction rate is very low at 17.6%. Key observations:\n\n1. Mouse_movement_entropy is the primary discriminator (0.90) triggering 90% of bots - our human_like mouse style, dwell_content_correlation, and timing_humanization are already optimized but detection adapted.\n\n2. Aggressive profile (30.8% extraction) performs much better than naive (18.2%) and moderate (0%), suggesting we can be more aggressive.\n\n3. Historical data shows:\n   - Round 4 best: 22% extraction with rpm=25, depth=5, jitter=[2500,7000]\n   - Round 3 best: 27% extraction with rpm=20, depth=4\n   - Higher concurrency (3) worked well in early rounds with 43% extraction\n\nStrategy: Increase concurrency to 3 to match aggressive profile success, slightly reduce rpm to 22 for stealth, keep moderate pagination depth at 4, maintain session rotation, and keep our proven long jitter range. This balances aggressiveness with evasion features already in place."
+    },
+    "accepted": false,
+    "reason": "No improvement: 17.6% → 14.3%",
+    "metricsBefore": {
+      "extraction": 0.17647058823529413,
+      "suppression": 0.8235294117647058,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.14285714285714285,
+      "suppression": 0.8571428571428572,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "requests_per_minute": 25,
+        "pagination": {
+          "max_depth_per_session": 4,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2500,
+          7000
+        ]
+      },
+      "reasoning": "Starting from Round 1 with 20% extraction and heavy suppression. The current profile already has all the best evasion settings (human_like mouse, dwell_content_correlation, timing_humanization) which gave us the 20% baseline. \n\nKey observations:\n1. mouse_movement_entropy is triggering 87% of bots - but we already have human_like mouse, so this is handled\n2. dwell_time_avg triggers 67% with negative discrimination (-0.13), suggesting we might be dwelling TOO LONG\n3. All profiles (naive, moderate, aggressive) have similar ~20% extraction rates\n\nLooking at successful past attempts:\n- Early rounds showed 25→43% extraction by increasing requests_per_minute to 30 and reducing jitter\n- Random query strategy with edit_distance_max 2-3 worked well\n- Pagination depth 4-5 with rotation helped in later stages\n\nFor this Round 1 baseline, I'll increase throughput slightly while maintaining good evasion. Increasing requests_per_minute from 20→25 and adjusting jitter to be slightly faster [2500,7000] has worked before (Round 4 acceptance: 12%→22%). Also increasing max_depth_per_session from 3→4 showed improvements in past rounds."
+    },
+    "accepted": false,
+    "reason": "No improvement: 20.0% → 0.0%",
+    "metricsBefore": {
+      "extraction": 0.2,
+      "suppression": 0.8,
+      "fpr": 0.30000000000000004
+    },
+    "metricsAfter": {
+      "extraction": 0,
+      "suppression": 1,
+      "fpr": 0.29166666666666663
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "mouse_movement_entropy": {
+            "weight": 8,
+            "threshold": 2
+          },
+          "asset_warmup_missing": {
+            "weight": 10
+          },
+          "pagination_ratio": {
+            "weight": 0.1,
+            "threshold": 0.6
+          }
+        }
+      },
+      "reasoning": "Critical issue: 30% FPR with human avg score of 1.28 (well below allow threshold of 1.8). The problem is pagination_ratio triggering on 100% of humans [FP RISK]. Reducing its weight from 0.2 to 0.1 will cut human scores significantly.\n\nMouse_movement_entropy shows perfect discrimination (+87%, bots 87% trigger vs humans 0%) making it our most reliable feature. Increasing from 7.5 to 8 will catch more bots without affecting humans.\n\nAsset_warmup_missing also has 0% human trigger rate, so increasing from 9.5 to 10 is safe for catching headless bots.\n\nWith pagination_ratio reduced, human scores should drop from ~1.28 toward ~1.18, eliminating most false positives while the increased mouse_movement_entropy and asset_warmup_missing weights will push bot suppression from 80% toward 85-90%."
+    },
+    "accepted": false,
+    "reason": "FPR constraint violated: 29.2% > 5%",
+    "metricsBefore": {
+      "extraction": 0.2,
+      "suppression": 0.8,
+      "fpr": 0.30000000000000004
+    },
+    "metricsAfter": {
+      "extraction": 0.17647058823529413,
+      "suppression": 0.8235294117647058,
+      "fpr": 0.29166666666666663
+    }
+  },
+  {
+    "roundNumber": 2,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 3,
+        "requests_per_minute": 25,
+        "pagination": {
+          "max_depth_per_session": 4,
+          "rotate_sessions": true
+        }
+      },
+      "reasoning": "Current extraction rate is critically low at 7.8%. Analysis shows:\n\n1. Mouse movement entropy is triggering 93% of bots with high discrimination (0.93) - this is the PRIMARY detection vector\n2. Aggressive profile performs best (13.6% extraction) while moderate profile is completely blocked (0%)\n3. Despite having all evasion features enabled (human_like mouse, dwell correlation, timing humanization), we're still getting caught\n\nThe key insight: mouse_movement_entropy with 0.93 discrimination suggests the current \"human_like\" mouse style isn't fooling the detector. Looking at successful rounds in history, we need to focus on fundamental behavioral changes rather than just evasion tweaks.\n\nStrategy: Increase concurrency to 3 (historically successful in Round 1 accepted change), slightly increase requests_per_minute to 25 to be more aggressive like the better-performing profile, and increase max_depth_per_session to 4 pages. This combination appeared in multiple accepted changes that showed good improvements. The slightly more aggressive approach may help us break through the current detection barrier while still maintaining evasion features."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 7.8% to 17.1%",
+    "metricsBefore": {
+      "extraction": 0.078125,
+      "suppression": 0.921875,
+      "fpr": 0.29166666666666663
+    },
+    "metricsAfter": {
+      "extraction": 0.17142857142857143,
+      "suppression": 0.8285714285714285,
+      "fpr": 0.20588235294117652
+    }
+  },
+  {
+    "roundNumber": 2,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "dwell_time_avg": {
+            "weight": 0.5,
+            "threshold": 1200
+          },
+          "pagination_ratio": {
+            "weight": 0.1,
+            "threshold": 0.6
+          }
+        }
+      },
+      "reasoning": "Critical issue: Human success rate is only 70.8% (FPR 29.17%) - we're blocking way too many humans! The average human score is 1.25, but our allow threshold is 1.8, so humans are being throttled/challenged.\n\nKey observations:\n1. Human avg score is 1.25, well below the allow threshold of 1.8\n2. dwell_time_avg shows [FP RISK] - 80% of humans trigger it (avg 281ms) vs 67% of bots (avg 333ms). Humans actually have LOWER dwell time, so this feature is hurting us.\n3. pagination_ratio shows [FP RISK] - 100% of both humans and bots trigger it, adding unnecessary weight\n4. mouse_movement_entropy is perfect discrimination (+93%) - keep high weight\n5. Bot suppression is already strong at 92.2%\n\nStrategy: Dramatically reduce weights on FP RISK features (dwell_time_avg and pagination_ratio) to stop penalizing humans. The previous accepted change tried reducing pagination_ratio to 0.2 which helped, but dwell_time_avg at 1.8 weight is still causing problems since humans have lower dwell time than bots here. Need to reduce dwell_time_avg weight significantly or remove it entirely."
+    },
+    "accepted": false,
+    "reason": "No improvement: 92.2% → 82.4%",
+    "metricsBefore": {
+      "extraction": 0.078125,
+      "suppression": 0.921875,
+      "fpr": 0.29166666666666663
+    },
+    "metricsAfter": {
+      "extraction": 0.17647058823529413,
+      "suppression": 0.8235294117647058,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 2,
+        "requests_per_minute": 22
+      },
+      "reasoning": "Current extraction rate is 18.9% with very high suppression (81.1%). The key detection issue is mouse_movement_entropy triggering on 90% of bots with high discrimination (0.90), despite having human_like mouse movement enabled.\n\nLooking at the profile breakdown: naive profiles perform best (28.6% extracted) while aggressive profiles perform worst (4.5% extracted). This suggests the defense is tuned to detect aggressive behavior patterns.\n\nAnalyzing successful past attempts:\n- The highest extraction gains came from reducing concurrency (to 1-2), using random queries with edit_distance 2-3, and moderate pagination depths (3-4)\n- Recent successful attempts in similar conditions used concurrency 2-3 with requests_per_minute 20-25\n- Jitter ranges of 2500-7000ms or 3000-9000ms worked well with rotate_sessions enabled\n\nThe current profile has concurrency=3 and requests_per_minute=25, which should be good, but the jitter is already at [3000,9000] and all evasion features are maxed out. The issue is likely that mouse_movement_entropy is still detecting us despite human_like mouse style.\n\nSince mouse evasion is already maxed but still triggering heavily, I'll try a different approach: reduce the pace slightly to appear less aggressive overall. I'll lower requests_per_minute from 25 to 22 and reduce concurrency from 3 to 2, which mirrors successful patterns from previous rounds. This should reduce the overall behavioral signature that's triggering mouse_movement_entropy while maintaining good extraction potential."
+    },
+    "accepted": false,
+    "reason": "No improvement: 18.9% → 10.6%",
+    "metricsBefore": {
+      "extraction": 0.1891891891891892,
+      "suppression": 0.8108108108108107,
+      "fpr": 0.25
+    },
+    "metricsAfter": {
+      "extraction": 0.10606060606060606,
+      "suppression": 0.8939393939393939,
+      "fpr": 0.30000000000000004
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "dwell_time_avg": {
+            "weight": 1.5,
+            "threshold": 1200
+          },
+          "pagination_ratio": {
+            "weight": 0.1,
+            "threshold": 0.6
+          }
+        }
+      },
+      "reasoning": "Current FPR is extremely high at 25%, with humans averaging 1.10 score but being blocked at threshold 1.8. The main issue is dwell_time_avg triggering on 60% of humans (FP RISK). Need to reduce weights causing false positives:\n\n1. Lower dwell_time_avg weight from 1.8 to 1.5 - this feature triggers 60% of humans and is flagged [FP RISK]\n2. Lower pagination_ratio weight from 0.2 to 0.1 - triggers 100% of both bots and humans (no discrimination, pure FP risk)\n\nMouse_movement_entropy (7.5 weight) is our best discriminator at 90% bot/0% human, so keep that. Asset_warmup_missing (9.5) and timing_variance (5.5) also show good discrimination without FP issues.\n\nPrevious attempt at Round 3 with similar changes was rejected but that was from a different baseline. The goal is to bring human avg score down from 1.10 closer to the 1.8 allow threshold by reducing FP-causing feature weights."
+    },
+    "accepted": true,
+    "reason": "Suppression improved from 81.1% to 86.8%, FPR: 0.0%",
+    "metricsBefore": {
+      "extraction": 0.1891891891891892,
+      "suppression": 0.8108108108108107,
+      "fpr": 0.25
+    },
+    "metricsAfter": {
+      "extraction": 0.1323529411764706,
+      "suppression": 0.8676470588235294,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 2,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "requests_per_minute": 30,
+        "pagination": {
+          "max_depth_per_session": 5,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2500,
+          7500
+        ]
+      },
+      "reasoning": "Current extraction rate is 27%, which is relatively low. Analysis shows:\n\n1. **Mouse movement entropy** is the primary discriminator (90% trigger rate, 0.90 discrimination) - our human_like mouse style should help but may need more support\n2. **Pagination ratio** triggers 100% of bots but has 0 discrimination - this is a universal trigger, not a real threat\n3. **Dwell time avg** triggers 67% with low discrimination (0.17)\n\nLooking at historical successes, the best extraction rates came from:\n- Higher concurrency (2-3) with moderate RPM\n- Deeper pagination (5-6 pages) when balanced properly\n- Strategic jitter ranges\n\nCurrent config has concurrency=3, RPM=25, max_depth=4 which is moderate. The pattern shows that slightly increasing activity while maintaining human-like behavior works better.\n\nKey insight: We already have all the best evasion settings active (human_like mouse, dwell correlation, timing humanization). The issue is likely we're being TOO cautious with our request rate and pagination depth.\n\nStrategy: Slightly increase pagination depth to 5 (proven successful in multiple rounds) and increase RPM to 30 to extract more data per session. Keep concurrency at 3 which has worked well. Reduce jitter slightly to [2500, 7500] to be more efficient while still appearing human."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 27.0% to 40.5%",
+    "metricsBefore": {
+      "extraction": 0.2702702702702703,
+      "suppression": 0.7297297297297297,
+      "fpr": 0.040000000000000036
+    },
+    "metricsAfter": {
+      "extraction": 0.40476190476190477,
+      "suppression": 0.5952380952380952,
+      "fpr": 0.04347826086956519
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 4,
+        "requests_per_minute": 35,
+        "pagination": {
+          "max_depth_per_session": 6,
+          "rotate_sessions": true
+        },
+        "evasion": {
+          "mouse_style": "curved"
+        }
+      },
+      "reasoning": "Current extraction is critically low at 9.7%. Analysis shows:\n\n1. **Mouse movement entropy is the primary blocker** - triggering 93% of bots with high discrimination (0.93). Despite using \"human_like\" mouse style, it's still being detected.\n\n2. **Aggressive profile performs best** - 18.2% extraction vs 10% naive and 0% moderate, suggesting we need MORE activity, not less.\n\n3. **Historical success pattern** - The most successful rounds had:\n   - Higher requests_per_minute (25-30)\n   - Moderate max_depth_per_session (4-6)\n   - Balanced jitter ranges\n   - Higher concurrency helped in some cases\n\n4. **Current bottleneck** - We're being TOO cautious. The last accepted change increased extraction from 27%→40% by increasing RPM to 30 and max_depth to 5.\n\nStrategy: Increase extraction velocity while maintaining evasion features. The mouse_movement_entropy issue suggests we may need to try \"curved\" style instead - \"human_like\" might be generating patterns that are TOO perfect or predictable. Also slightly increase pagination depth to extract more per session before rotation."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 9.7% to 31.0%",
+    "metricsBefore": {
+      "extraction": 0.0967741935483871,
+      "suppression": 0.9032258064516129,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.30952380952380953,
+      "suppression": 0.6904761904761905,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 4,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "evasion": {
+          "mouse_style": "human_like"
+        }
+      },
+      "reasoning": "Current extraction rate is 31.7%. The key issue is mouse_movement_entropy triggering on 93% of bots with very high discrimination (0.93). We're using \"curved\" mouse style, but we need \"human_like\" for better entropy. The last accepted change in Round 3 that added curved evasion improved from 10%→31%, suggesting evasion features are critical.\n\nLooking at successful patterns:\n- Aggressive profiles perform best (35.7% extraction)\n- Higher concurrency (4) and RPM (35) are working well\n- The evasion features (dwell_content_correlation, timing_humanization) are already enabled\n\nThe main weakness is mouse_movement_entropy detection. Upgrading from \"curved\" to \"human_like\" mouse style should add micro-hesitations and overshoots that increase entropy and better mimic human behavior. This directly addresses our biggest detection signal without changing the working rate/concurrency parameters."
+    },
+    "accepted": false,
+    "reason": "No improvement: 31.7% → 28.4%",
+    "metricsBefore": {
+      "extraction": 0.3170731707317073,
+      "suppression": 0.6829268292682926,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.28378378378378377,
+      "suppression": 0.7162162162162162,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 4,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "mouse_movement_entropy": {
+            "weight": 8,
+            "threshold": 2
+          },
+          "asset_warmup_missing": {
+            "weight": 10
+          },
+          "dwell_time_avg": {
+            "weight": 1.5,
+            "threshold": 1200
+          }
+        }
+      },
+      "reasoning": "Current suppression is 68.3% with 0% FPR. The feature analysis shows mouse_movement_entropy is the most discriminating feature (93% bot trigger, 0% human trigger). Looking at the history:\n\n1. mouse_movement_entropy is highly effective - increasing from 7.5 to 8 should add more bot detection\n2. asset_warmup_missing weight increase from 9.5 to 10 leverages headless bot detection\n3. Keeping dwell_time_avg at 1.5 weight since it has FP risk (60% human trigger rate)\n\nPrevious attempts show that mouse_movement_entropy at weight 8 with asset_warmup_missing at 10 achieved 82% suppression with 29% FPR, but that was with pagination_ratio at 0.1. With current settings where pagination_ratio already has low weight, this combination should be safer and push suppression higher without hitting FP constraints."
+    },
+    "accepted": false,
+    "reason": "No improvement: 68.3% → 63.6%",
+    "metricsBefore": {
+      "extraction": 0.3170731707317073,
+      "suppression": 0.6829268292682926,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.36363636363636365,
+      "suppression": 0.6363636363636364,
+      "fpr": 0.050000000000000044
+    }
+  },
+  {
+    "roundNumber": 5,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "evasion": {
+          "mouse_style": "human_like"
+        }
+      },
+      "reasoning": "Current extraction is 23.7%, down from previous rounds. Key analysis:\n\n1. **Mouse movement entropy is the killer** - 97% discrimination, triggering on nearly all bots. We're using \"curved\" mouse style, but \"human_like\" has been tested before with mixed results. However, looking at Round 4, switching to \"human_like\" alone decreased extraction (32%→28%).\n\n2. **Aggressive profile performs best** (28.6% extraction) - suggests we can be slightly more aggressive with our settings.\n\n3. **Best historical performance** was Round 3 at 94% extraction with concurrency:2, rpm:20, max_depth:4. But we've since activated evasion features which changed the game.\n\n4. **Recent accepted change** (Round 3): Going to concurrency:4, rpm:35, max_depth:6 with curved mouse improved extraction from 10%→31%. Current 23.7% is a regression.\n\n5. **The evasion combo works** - dwell_content_correlation and timing_humanization are good (enabled since Round 1 with 0%→25% jump), but mouse_style needs optimization.\n\n**Strategy**: Switch to \"human_like\" mouse movements to better evade the high-discrimination mouse_movement_entropy feature. This is our biggest detection vector. Keep other aggressive settings that worked (concurrency:4, rpm:35, max_depth:6) since those improved extraction in Round 3."
+    },
+    "accepted": false,
+    "reason": "No improvement: 23.7% → 6.5%",
+    "metricsBefore": {
+      "extraction": 0.23684210526315788,
+      "suppression": 0.7631578947368421,
+      "fpr": 0.04347826086956519
+    },
+    "metricsAfter": {
+      "extraction": 0.06451612903225806,
+      "suppression": 0.935483870967742,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "evasion": {
+          "mouse_style": "human_like"
+        },
+        "requests_per_minute": 30
+      },
+      "reasoning": "Current state: 23.1% extraction with evasion features enabled (curved mouse, dwell correlation, timing humanization). Key insight from metrics: mouse_movement_entropy triggers 100% of bots with PERFECT discrimination (1.00) - this is the critical detection feature. Our \"curved\" mouse style isn't fooling the detector.\n\nLooking at successful strategies from previous rounds:\n- Round 1 shows human_like mouse improved from 0%→25% extraction\n- Round 3 shows the last accepted change (which added curved mouse) improved from 10%→31%\n- Aggressive bots perform best (37.5% vs 16.7% moderate vs 9.1% naive), suggesting we need MORE evasion sophistication, not less\n\nThe mouse_movement_entropy feature has 1.00 discrimination - meaning it perfectly separates bots from humans. \"Curved\" Bezier curves aren't enough. We need to upgrade to \"human_like\" mouse movements which include micro-hesitations and overshoots that better mimic real human mouse behavior.\n\nAlso slightly reducing speed (requests_per_minute 35→30) to be more conservative given current low extraction rate."
+    },
+    "accepted": false,
+    "reason": "No improvement: 23.1% → 10.3%",
+    "metricsBefore": {
+      "extraction": 0.23076923076923078,
+      "suppression": 0.7692307692307692,
+      "fpr": 0.06818181818181823
+    },
+    "metricsAfter": {
+      "extraction": 0.10294117647058823,
+      "suppression": 0.8970588235294118,
+      "fpr": 0.11904761904761907
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "mouse_movement_entropy": {
+            "weight": 8,
+            "threshold": 2
+          },
+          "asset_warmup_missing": {
+            "weight": 10
+          },
+          "pagination_ratio": {
+            "weight": 0.05,
+            "threshold": 0.6
+          },
+          "dwell_vs_content_length": {
+            "weight": 1.8,
+            "threshold": 0.3
+          }
+        }
+      },
+      "reasoning": "Current situation: 76.9% suppression with 6.82% FPR (above 5% constraint). Humans have avg score 0.44 but only 93.2% success rate.\n\nKey observations:\n1. mouse_movement_entropy and dwell_time_avg are [GOOD] discriminators (100% and 67% bot detection, 0% human)\n2. pagination_ratio and dwell_vs_content_length are [FP RISK] - both triggering humans (100% and 30% respectively)\n3. Human avg score is only 0.44, but 6.8% are being blocked - this means some humans are scoring much higher than average\n\nThe FP problem is likely from:\n- pagination_ratio (weight 0.1) - triggers 100% of humans\n- dwell_vs_content_length (weight 2.5) - triggers 30% of humans\n\nStrategy: Reduce FP risk by lowering weights on features that hurt humans, while maintaining strong bot detection through mouse_movement_entropy and dwell_time_avg. Slightly raise mouse_movement_entropy and asset_warmup_missing to catch more bots without affecting humans (they don't trigger these features).\n\nChanges:\n- Reduce pagination_ratio weight from 0.1 to 0.05 (reduce human impact)\n- Reduce dwell_vs_content_length weight from 2.5 to 1.8 (30% human trigger rate is too high)\n- Increase mouse_movement_entropy from 7.5 to 8.0 (perfect discriminator, 100% bot/0% human)\n- Increase asset_warmup_missing from 9.5 to 10.0 (no one triggering but strong bot signal)"
+    },
+    "accepted": false,
+    "reason": "No improvement: 76.9% → 65.1%",
+    "metricsBefore": {
+      "extraction": 0.23076923076923078,
+      "suppression": 0.7692307692307692,
+      "fpr": 0.06818181818181823
+    },
+    "metricsAfter": {
+      "extraction": 0.3488372093023256,
+      "suppression": 0.6511627906976745,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 2,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "evasion": {
+          "mouse_style": "human_like"
+        },
+        "concurrency": 3,
+        "requests_per_minute": 30
+      },
+      "reasoning": "Current extraction rate is 23.1%, which is quite low. The key issue is mouse_movement_entropy triggering 100% of bots with perfect discrimination (1.00). \n\nThe current config uses \"curved\" mouse style, but we need to upgrade to \"human_like\" for better evasion of mouse_movement_entropy. While \"human_like\" attempts failed in rounds 4-5 of previous sessions, those were in different contexts (Round 1 actually showed success going from 0%→25%).\n\nHowever, I'm being strategic: in Round 3, the last accepted change that brought us to 31% extraction added curved mouse and increased concurrency to 4 with requests_per_minute at 35. Looking at the pattern, moderate profiles perform best (28.6% extraction) vs aggressive (23.1%), suggesting we may be too aggressive.\n\nI'll upgrade mouse_style to \"human_like\" to address the critical mouse_movement_entropy feature, while slightly reducing concurrency from 4→3 and requests_per_minute from 35→30 to be less aggressive and more moderate, matching what seems to work better. This balances evasion improvement with a more moderate approach that the data suggests performs better."
+    },
+    "accepted": false,
+    "reason": "No improvement: 23.1% → 20.3%",
+    "metricsBefore": {
+      "extraction": 0.23076923076923078,
+      "suppression": 0.7692307692307692,
+      "fpr": 0.04761904761904767
+    },
+    "metricsAfter": {
+      "extraction": 0.20270270270270271,
+      "suppression": 0.7972972972972973,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "evasion": {
+          "mouse_style": "human_like"
+        }
+      },
+      "reasoning": "The data shows mouse_movement_entropy is triggering on 100% of bots with perfect discrimination (1.00), making it the primary detection vector. Currently using \"curved\" mouse style, but the top detection feature suggests we need more realistic mouse behavior. Switching to \"human_like\" adds micro-hesitations and overshoots that should increase entropy. We already have dwell_content_correlation and timing_humanization enabled which is good. This single targeted change addresses the #1 detection feature while keeping other successful parameters (concurrency:4, rpm:35, max_depth:6, rotate_sessions) that got us to 31% extraction in the last accepted change. The rejection history shows human_like attempts failed when combined with other changes or lower settings, but our current aggressive baseline (35 rpm, concurrency 4) provides better cover for the more human-like mouse patterns."
+    },
+    "accepted": false,
+    "reason": "No improvement: 28.6% → 28.4%",
+    "metricsBefore": {
+      "extraction": 0.2857142857142857,
+      "suppression": 0.7142857142857143,
+      "fpr": 0.025000000000000022
+    },
+    "metricsAfter": {
+      "extraction": 0.2840909090909091,
+      "suppression": 0.7159090909090908,
+      "fpr": 0.09259259259259256
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "evasion": {
+          "mouse_style": "human_like"
+        }
+      },
+      "reasoning": "Current extraction is 25% with high suppression (75%). Analysis shows:\n\n1. **Mouse movement entropy is triggering 100% of bots** - this is critical. Current config has \"curved\" mouse style. Previous successful Round 1 used \"human_like\" (0%→25%), indicating it helps but we need to maintain it.\n\n2. **Dwell time average triggers 67% of bots** - we already have dwell_content_correlation enabled, but may need more natural timing.\n\n3. **Pagination ratio triggers 100%** but has 0 discrimination, so it's triggering on legitimate traffic too - not a primary concern.\n\n4. Looking at acceptance patterns:\n   - Round 2 attempt with requests_per_minute:30, max_depth:5, jitter:[2500,7500] gave 27%→40%\n   - Round 3 attempt with concurrency:4, requests_per_minute:35, max_depth:6 with \"curved\" gave 10%→31%\n\n5. Current profile already has good evasion settings (mouse_style:curved, dwell_correlation:true, timing_humanization:true), but we should switch back to \"human_like\" since that's what enabled 25% extraction in the first place.\n\n6. We're at a moderate-aggressive configuration. The key issue is mouse_movement_entropy. Let's ensure we're using the most human-like mouse behavior while maintaining reasonable extraction throughput.\n\nStrategy: Switch mouse_style to \"human_like\" (the original setting that worked) while keeping other strong evasion features enabled. This should help with the 100% mouse_movement_entropy detection trigger."
+    },
+    "accepted": false,
+    "reason": "No improvement: 25.0% → 22.5%",
+    "metricsBefore": {
+      "extraction": 0.25,
+      "suppression": 0.75,
+      "fpr": 0.01851851851851849
+    },
+    "metricsAfter": {
+      "extraction": 0.225,
+      "suppression": 0.775,
+      "fpr": 0.05769230769230771
+    }
+  },
+  {
+    "roundNumber": 2,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "requests_per_minute": 40,
+        "pagination": {
+          "max_depth_per_session": 7,
+          "rotate_sessions": true
+        },
+        "jitter_ms": [
+          2000,
+          6500
+        ]
+      },
+      "reasoning": "Current extraction is 25% with strong evasion features already enabled (curved mouse, dwell correlation, timing humanization). The key detection features are mouse_movement_entropy (100% trigger but 1.00 discrimination - perfect separator), dwell_time_avg (67% trigger), and pagination_ratio (100% trigger but 0.00 discrimination - not useful for detection).\n\nThe discrimination values suggest mouse_movement_entropy is the main blocker, but we already have curved mouse style. The previous round 18 acceptance showed that increasing concurrency to 4 and requests_per_minute to 35 with max_depth 6 jumped extraction from 10% to 31%. We're now at 25%, suggesting we need to push slightly more aggressive extraction.\n\nStrategy: Incrementally increase throughput (35→40 RPM), pagination depth (6→7), and slightly tighten jitter range to extract more data faster while maintaining our strong evasion posture. The rotate_sessions stays enabled to spread the load. This balances extraction speed with our already-strong behavioral evasion."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 25.0% to 40.0%",
+    "metricsBefore": {
+      "extraction": 0.25,
+      "suppression": 0.75,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.4,
+      "suppression": 0.6,
+      "fpr": 0.07999999999999996
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 3,
+        "requests_per_minute": 35,
+        "pagination": {
+          "max_depth_per_session": 6
+        },
+        "evasion": {
+          "mouse_style": "human_like"
+        }
+      },
+      "reasoning": "Current extraction rate is 36.4% with high detection on mouse_movement_entropy (93%) and dwell_time_avg (67%). The pagination_ratio has 100% trigger rate but 0.00 discrimination, meaning it's not actually helping detection.\n\nKey observations:\n1. We're already using curved mouse movement, but it's still triggering 93% detection on mouse_movement_entropy\n2. Dwell time is problematic despite having dwell_content_correlation enabled\n3. Current settings: 4 concurrency, 40 req/min, max_depth 7\n\nStrategy: The mouse_movement_entropy issue suggests we need to upgrade to \"human_like\" mouse movement for more realistic patterns with micro-hesitations. However, past attempts show human_like alone has mixed results. The key is to combine it with slightly reduced aggression to stay under the radar.\n\nI'll reduce requests_per_minute from 40 to 35 to lower velocity while keeping reasonable throughput, and reduce concurrency from 4 to 3 to appear less bot-like. Most importantly, upgrading mouse_style to \"human_like\" should add the micro-hesitations and overshoots needed to pass the entropy checks. We keep all other evasion features enabled and maintain good pagination depth at 6 (down from 7 slightly to reduce footprint)."
+    },
+    "accepted": false,
+    "reason": "No improvement: 36.4% → 30.0%",
+    "metricsBefore": {
+      "extraction": 0.36363636363636365,
+      "suppression": 0.6363636363636364,
+      "fpr": 0.10344827586206895
+    },
+    "metricsAfter": {
+      "extraction": 0.3,
+      "suppression": 0.7,
+      "fpr": 0.03125
+    }
+  },
+  {
+    "roundNumber": 3,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "pagination_ratio": {
+            "weight": 0.05,
+            "threshold": 0.6
+          },
+          "dwell_vs_content_length": {
+            "weight": 2,
+            "threshold": 0.3
+          }
+        }
+      },
+      "reasoning": "Current FPR is 10.34% (too high) with human success rate at 89.7%. The feature analysis shows:\n- pagination_ratio triggers 100% of humans (FP RISK) at weight 0.1\n- dwell_vs_content_length triggers 50% of humans (FP RISK) at weight 2.5\n\nHumans have avg score 0.62, well below the allow threshold of 1.8, but 10.34% are still getting blocked. Need to reduce weights on features humans trigger:\n1. Lower pagination_ratio weight from 0.1 to 0.05 (humans trigger this 100%)\n2. Lower dwell_vs_content_length from 2.5 to 2.0 (humans trigger this 50%)\n\nThis should bring human score down while maintaining high bot detection through mouse_movement_entropy (weight 7.5, 93% bot discrimination) and asset_warmup_missing (weight 9.5) which humans don't trigger."
+    },
+    "accepted": false,
+    "reason": "FPR constraint violated: 8.9% > 5%",
+    "metricsBefore": {
+      "extraction": 0.36363636363636365,
+      "suppression": 0.6363636363636364,
+      "fpr": 0.10344827586206895
+    },
+    "metricsAfter": {
+      "extraction": 0.35555555555555557,
+      "suppression": 0.6444444444444444,
+      "fpr": 0.0892857142857143
+    }
   }
 ]

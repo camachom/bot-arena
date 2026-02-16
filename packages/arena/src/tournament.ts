@@ -198,9 +198,8 @@ function calculateMetrics(sessionResults: SessionResult[], fightNumber: number, 
   }
 
   const profileMetrics: ProfileMetrics[] = [];
-  let humanSuccessCount = 0;
-  let humanTotalCount = 0;
-  let humanBlockedCount = 0;
+  let humanWeightedExtractions = 0;
+  let humanTotalRequests = 0;
   let botWeightedExtractions = 0;
   let botTotalRequests = 0;
 
@@ -246,17 +245,17 @@ function calculateMetrics(sessionResults: SessionResult[], fightNumber: number, 
     });
 
     if (!isBot) {
-      humanTotalCount += results.length;
-      humanSuccessCount += results.filter((r) => !r.wasBlocked).length;
-      humanBlockedCount += results.filter((r) => r.wasBlocked).length;
+      humanWeightedExtractions += weightedExtractions;
+      humanTotalRequests += requestCount;
     } else {
       botWeightedExtractions += weightedExtractions;
       botTotalRequests += requestCount;
     }
   }
 
-  const humanSuccessRate = humanTotalCount > 0 ? humanSuccessCount / humanTotalCount : 1;
-  const falsePositiveRate = humanTotalCount > 0 ? humanBlockedCount / humanTotalCount : 0;
+  const humanExtractionRate = humanTotalRequests > 0 ? humanWeightedExtractions / humanTotalRequests : 1;
+  const humanSuccessRate = humanExtractionRate;
+  const falsePositiveRate = 1 - humanExtractionRate;
   const botExtractionRate = botTotalRequests > 0 ? botWeightedExtractions / botTotalRequests : 0;
   const botSuppressionRate = 1 - botExtractionRate;
   const featureAnalysis = calculateFeatureAnalysis(sessionResults);
