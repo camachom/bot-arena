@@ -1,4 +1,5 @@
 import { execSync } from 'child_process';
+import { join } from 'path';
 import type { RoundReport } from '@bot-arena/types';
 
 export function isGitRepo(): boolean {
@@ -10,11 +11,13 @@ export function isGitRepo(): boolean {
   }
 }
 
-export function commitRound(report: RoundReport): void {
+export function commitRound(report: RoundReport, rootDir: string): void {
   const { roundNumber, redValidation, blueValidation } = report;
 
-  // Stage config files
-  execSync('git add configs/attack_profile.json configs/policy.yml');
+  // Stage config files using absolute paths
+  const attackProfilePath = join(rootDir, 'configs/attack_profile.json');
+  const policyPath = join(rootDir, 'configs/policy.yml');
+  execSync(`git add "${attackProfilePath}" "${policyPath}"`);
 
   // Build commit message
   const changes: string[] = [];

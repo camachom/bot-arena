@@ -1,0 +1,59 @@
+[
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "concurrency": 4,
+        "requests_per_minute": 50
+      },
+      "reasoning": "The current configuration is performing well with 91.7% extraction rate. The moderate and aggressive profiles achieved perfect 100% extraction with no blocks, while only the naive profile had some blocks (2 out of ~8 attempts). This suggests we can safely increase throughput without triggering detection systems. Incrementally increasing concurrency from 3 to 4 and requests per minute from 40 to 50 should boost overall extraction rate while staying within safe operational parameters that have proven successful."
+    },
+    "accepted": false,
+    "reason": "No improvement: 91.7% → 84.2%",
+    "metricsBefore": {
+      "extraction": 0.9166666666666666,
+      "suppression": 0.08333333333333337,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.8421052631578947,
+      "suppression": 0.1578947368421053,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "features": {
+          "dwell_time_avg": {
+            "weight": 2.5
+          },
+          "asset_warmup_missing": {
+            "weight": 4
+          }
+        },
+        "actions": {
+          "block": {
+            "max_score": 3
+          }
+        }
+      },
+      "reasoning": "Bot suppression is extremely low at 8.3% - most bots are scoring around 3.0 and only getting challenged, not blocked. Since we have 0% false positives and 100% human success rate, I have significant room to be more aggressive. I'll lower the block threshold from 4.5 to 3.0 to capture more bots, and increase weights on key bot indicators like asset_warmup_missing and dwell_time_avg to better differentiate bot behavior."
+    },
+    "accepted": true,
+    "reason": "Suppression improved from 8.3% to 75.0%, FPR: 0.0%",
+    "metricsBefore": {
+      "extraction": 0.9166666666666666,
+      "suppression": 0.08333333333333337,
+      "fpr": 0
+    },
+    "metricsAfter": {
+      "extraction": 0.25,
+      "suppression": 0.75,
+      "fpr": 0
+    }
+  }
+]

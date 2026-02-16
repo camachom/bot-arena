@@ -163,6 +163,17 @@ export interface RoundReport {
   policy: Policy;
 }
 
+// Proposal History Entry for tracking previous attempts
+export interface ProposalHistoryEntry {
+  roundNumber: number;
+  team: 'red' | 'blue';
+  proposal: AttackProfileProposal | PolicyProposal;
+  accepted: boolean;
+  reason: string;
+  metricsBefore: { extraction: number; suppression: number; fpr: number };
+  metricsAfter?: { extraction: number; suppression: number; fpr: number };
+}
+
 // Request Logging
 export interface RequestLog {
   sessionId: string;

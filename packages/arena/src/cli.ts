@@ -16,6 +16,8 @@ import {
 import { validateRedProposal, validateBlueProposal, type ValidatorConfig } from './validator.js';
 import { generateReport } from './report.js';
 import { isGitRepo, commitRound } from './git.js';
+import { loadHistory, saveHistory } from './history.js';
+import type { ProposalHistoryEntry } from '@bot-arena/types';
 
 const program = new Command();
 
@@ -69,8 +71,8 @@ program
     console.log(`Fast mode: ${fast ? 'enabled' : 'disabled'}\n`);
 
     // Import agents dynamically to avoid circular deps
-    let getRedProposal: ((metrics: RoundMetrics, profile: AttackProfile) => Promise<AttackProfileProposal>) | null = null;
-    let getBlueProposal: ((metrics: RoundMetrics, policy: Policy) => Promise<PolicyProposal>) | null = null;
+    let getRedProposal: ((metrics: RoundMetrics, profile: AttackProfile, history: ProposalHistoryEntry[]) => Promise<AttackProfileProposal>) | null = null;
+    let getBlueProposal: ((metrics: RoundMetrics, policy: Policy, history: ProposalHistoryEntry[]) => Promise<PolicyProposal>) | null = null;
 
     if (useAgents) {
       try {
@@ -80,6 +82,15 @@ program
       } catch (err) {
         console.warn('Agent module not available, running without agents');
       }
+    }
+
+    // Load proposal history
+    const historyPath = join(configDir, 'history.json');
+    let history = loadHistory(historyPath);
+
+    // Helper to check if proposal has changes
+    function hasChanges(changes: object): boolean {
+      return Object.keys(changes).length > 0;
     }
 
     for (let round = 1; round <= rounds; round++) {
@@ -128,8 +139,8 @@ program
 
         try {
           [redProposal, blueProposal] = await Promise.all([
-            getRedProposal(metrics, attackProfile),
-            getBlueProposal(metrics, policy),
+            getRedProposal(metrics, attackProfile, history),
+            getBlueProposal(metrics, policy, history),
           ]);
 
           console.log(`├─ Red proposal: ${summarizeRedProposal(redProposal)}`);
@@ -151,17 +162,65 @@ program
         port,
       };
 
-      if (redProposal) {
-        console.log('├─ Validation: re-running for Red...');
+      if (redProposal && hasChanges(redProposal.changes)) {
+        console.log('├─ Validation: running tournament for Red...');
         redValidation = await validateRedProposal(validatorConfig, redProposal, metrics);
         console.log(`├─ Red: ${redValidation.accepted ? 'ACCEPTED' : 'REJECTED'} (${redValidation.reason})`);
+      } else if (redProposal) {
+        console.log('├─ Red: skipped (no changes)');
+      }
+
+      if (blueProposal && hasChanges(blueProposal.changes)) {
+        console.log('├─ Validation: running tournament for Blue...');
+        blueValidation = await validateBlueProposal(validatorConfig, blueProposal, metrics);
+        console.log(`├─ Blue: ${blueValidation.accepted ? 'ACCEPTED' : 'REJECTED'} (${blueValidation.reason})`);
+      } else if (blueProposal) {
+        console.log('├─ Blue: skipped (no changes)');
+      }
+
+      // Update history
+      const metricsBefore = {
+        extraction: metrics.botExtractionRate,
+        suppression: metrics.botSuppressionRate,
+        fpr: metrics.falsePositiveRate,
+      };
+
+      if (redProposal) {
+        const entry: ProposalHistoryEntry = {
+          roundNumber: round,
+          team: 'red',
+          proposal: redProposal,
+          accepted: redValidation?.accepted ?? false,
+          reason: redValidation?.reason ?? 'no changes',
+          metricsBefore,
+          metricsAfter: redValidation?.afterMetrics ? {
+            extraction: redValidation.afterMetrics.botExtractionRate,
+            suppression: redValidation.afterMetrics.botSuppressionRate,
+            fpr: redValidation.afterMetrics.falsePositiveRate,
+          } : undefined,
+        };
+        history.push(entry);
       }
 
       if (blueProposal) {
-        console.log('├─ Validation: re-running for Blue...');
-        blueValidation = await validateBlueProposal(validatorConfig, blueProposal, metrics);
-        console.log(`└─ Blue: ${blueValidation.accepted ? 'ACCEPTED' : 'REJECTED'} (${blueValidation.reason})`);
+        const entry: ProposalHistoryEntry = {
+          roundNumber: round,
+          team: 'blue',
+          proposal: blueProposal,
+          accepted: blueValidation?.accepted ?? false,
+          reason: blueValidation?.reason ?? 'no changes',
+          metricsBefore,
+          metricsAfter: blueValidation?.afterMetrics ? {
+            extraction: blueValidation.afterMetrics.botExtractionRate,
+            suppression: blueValidation.afterMetrics.botSuppressionRate,
+            fpr: blueValidation.afterMetrics.falsePositiveRate,
+          } : undefined,
+        };
+        history.push(entry);
       }
+
+      // Save history after each round
+      saveHistory(historyPath, history);
 
       // Generate report
       const report: RoundReport = {
@@ -183,7 +242,7 @@ program
       // Git tracking (if in a git repo and changes were accepted)
       if (useGit && isGitRepo() && (redValidation?.accepted || blueValidation?.accepted)) {
         try {
-          commitRound(report);
+          commitRound(report, rootDir);
           console.log(`Git: committed round ${round} changes`);
         } catch (err) {
           console.warn('Git commit failed:', err instanceof Error ? err.message : String(err));

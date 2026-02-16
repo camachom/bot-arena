@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { RoundMetrics, Policy, PolicyProposal } from '@bot-arena/types';
+import type { RoundMetrics, Policy, PolicyProposal, ProposalHistoryEntry } from '@bot-arena/types';
+import { env } from './env.js';
 
-const client = new Anthropic();
+const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
 const SYSTEM_PROMPT = `You are a Blue Team agent in a bot arena. Your goal is to maximize bot suppression while keeping false positives below 1%.
 
@@ -52,8 +53,11 @@ const proposalTool: Anthropic.Tool = {
 
 export async function getBlueProposal(
   metrics: RoundMetrics,
-  currentPolicy: Policy
+  currentPolicy: Policy,
+  history: ProposalHistoryEntry[] = []
 ): Promise<PolicyProposal> {
+  const historySection = formatHistory(history);
+
   const prompt = `Current policy:
 ${JSON.stringify(currentPolicy, null, 2)}
 
@@ -71,10 +75,30 @@ ${metrics.profiles
   )
   .join('\n')}
 
+${historySection}
+
 Analyze these results and use the submit_proposal tool to propose changes that will improve suppression while keeping FPR ≤ 1%.`;
 
+  function formatHistory(entries: ProposalHistoryEntry[]): string {
+    const blueEntries = entries.filter((e) => e.team === 'blue').slice(-5);
+    if (blueEntries.length === 0) return '';
+
+    const lines = blueEntries.map((entry) => {
+      const status = entry.accepted ? 'ACCEPTED' : 'REJECTED';
+      const changes = Object.keys(entry.proposal.changes).length > 0
+        ? JSON.stringify(entry.proposal.changes)
+        : 'no changes';
+      const metricsChange = entry.metricsAfter
+        ? `suppression ${(entry.metricsBefore.suppression * 100).toFixed(0)}%→${(entry.metricsAfter.suppression * 100).toFixed(0)}%`
+        : entry.reason;
+      return `- Round ${entry.roundNumber}: ${changes} → ${status} (${metricsChange})`;
+    });
+
+    return `Previous attempts:\n${lines.join('\n')}`;
+  }
+
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: env.ANTHROPIC_MODEL,
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
     tools: [proposalTool],

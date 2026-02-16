@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { RoundMetrics, AttackProfile, AttackProfileProposal } from '@bot-arena/types';
+import type { RoundMetrics, AttackProfile, AttackProfileProposal, ProposalHistoryEntry } from '@bot-arena/types';
+import { env } from './env.js';
 
-const client = new Anthropic();
+const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
 const SYSTEM_PROMPT = `You are a Red Team agent in a bot arena. Your goal is to maximize data extraction from a target website while evading detection.
 
@@ -46,8 +47,11 @@ const proposalTool: Anthropic.Tool = {
 
 export async function getRedProposal(
   metrics: RoundMetrics,
-  currentProfile: AttackProfile
+  currentProfile: AttackProfile,
+  history: ProposalHistoryEntry[] = []
 ): Promise<AttackProfileProposal> {
+  const historySection = formatHistory(history);
+
   const prompt = `Current attack profile:
 ${JSON.stringify(currentProfile, null, 2)}
 
@@ -64,10 +68,30 @@ ${metrics.profiles
   )
   .join('\n')}
 
+${historySection}
+
 Analyze these results and use the submit_proposal tool to propose changes that will improve extraction rate while avoiding detection.`;
 
+  function formatHistory(entries: ProposalHistoryEntry[]): string {
+    const redEntries = entries.filter((e) => e.team === 'red').slice(-5);
+    if (redEntries.length === 0) return '';
+
+    const lines = redEntries.map((entry) => {
+      const status = entry.accepted ? 'ACCEPTED' : 'REJECTED';
+      const changes = Object.keys(entry.proposal.changes).length > 0
+        ? JSON.stringify(entry.proposal.changes)
+        : 'no changes';
+      const metricsChange = entry.metricsAfter
+        ? `extraction ${(entry.metricsBefore.extraction * 100).toFixed(0)}%→${(entry.metricsAfter.extraction * 100).toFixed(0)}%`
+        : entry.reason;
+      return `- Round ${entry.roundNumber}: ${changes} → ${status} (${metricsChange})`;
+    });
+
+    return `Previous attempts:\n${lines.join('\n')}`;
+  }
+
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: env.ANTHROPIC_MODEL,
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
     tools: [proposalTool],
