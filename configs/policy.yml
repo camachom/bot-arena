@@ -12,7 +12,7 @@ features:
     weight: 1
     threshold: 5
   dwell_time_avg:
-    weight: 1
+    weight: 1.5
     threshold: 800
   timing_variance:
     weight: 5
@@ -20,19 +20,19 @@ features:
   asset_warmup_missing:
     weight: 6.5
   mouse_movement_entropy:
-    weight: 4
+    weight: 5
     threshold: 2
   dwell_vs_content_length:
     weight: 2.5
     threshold: 0.3
 actions:
   allow:
-    max_score: 2
+    max_score: 1.8
   throttle:
-    max_score: 3
+    max_score: 2.8
   challenge:
-    max_score: 4
+    max_score: 3.8
   block:
-    max_score: 5
+    max_score: 4.8
 constraints:
   max_false_positive_rate: 0.01
