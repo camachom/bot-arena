@@ -6,19 +6,19 @@ features:
     weight: 2.3
     threshold: 28
   pagination_ratio:
-    weight: 1.2
+    weight: 0.5
     threshold: 0.6
   session_depth:
     weight: 1
     threshold: 5
   dwell_time_avg:
-    weight: 2.8
-    threshold: 1800
+    weight: 3
+    threshold: 950
   timing_variance:
-    weight: 3.0
-    threshold: 0.4  # CV < 0.4 = too consistent = suspicious
+    weight: 3.5
+    threshold: 0.4
   asset_warmup_missing:
-    weight: 4.5
+    weight: 5
 actions:
   allow:
     max_score: 2
