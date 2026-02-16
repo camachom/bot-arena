@@ -14,5 +14,10 @@
   "jitter_ms": [
     2000,
     6000
-  ]
+  ],
+  "evasion": {
+    "mouse_style": "human_like",
+    "dwell_content_correlation": true,
+    "timing_humanization": true
+  }
 }
