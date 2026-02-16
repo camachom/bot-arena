@@ -1,18 +1,18 @@
 {
   "mode": "headed",
-  "concurrency": 2,
-  "requests_per_minute": 25,
+  "concurrency": 1,
+  "requests_per_minute": 15,
   "warmup": true,
   "query_strategy": {
     "type": "random",
-    "edit_distance_max": 3
+    "edit_distance_max": 2
   },
   "pagination": {
     "max_depth_per_session": 3,
     "rotate_sessions": true
   },
   "jitter_ms": [
-    1000,
-    4000
+    2000,
+    6000
   ]
 }
