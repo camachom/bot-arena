@@ -55,5 +55,68 @@
       "suppression": 0.75,
       "fpr": 0
     }
+  },
+  {
+    "roundNumber": 1,
+    "team": "red",
+    "proposal": {
+      "changes": {
+        "mode": "headed",
+        "concurrency": 2,
+        "requests_per_minute": 30,
+        "jitter_ms": [
+          800,
+          3000
+        ]
+      },
+      "reasoning": "The current 25% extraction rate shows aggressive detection is occurring. The naive profile performed best (50% extracted) while moderate/aggressive were completely blocked, suggesting the target is highly sensitive to automation patterns. Moving to headed mode will add browser rendering overhead but appear more human-like. Reducing concurrency from 3→2 and RPM from 40→30 decreases request velocity. Increasing jitter range to 800-3000ms creates more human-like timing variability. These conservative changes should improve stealth without drastically altering the working aspects of the current profile."
+    },
+    "accepted": true,
+    "reason": "Extraction improved from 25.0% to 42.9%",
+    "metricsBefore": {
+      "extraction": 0.25,
+      "suppression": 0.75,
+      "fpr": 1
+    },
+    "metricsAfter": {
+      "extraction": 0.42857142857142855,
+      "suppression": 0.5714285714285714,
+      "fpr": 0
+    }
+  },
+  {
+    "roundNumber": 1,
+    "team": "blue",
+    "proposal": {
+      "changes": {
+        "actions": {
+          "allow": {
+            "max_score": 2.8
+          },
+          "throttle": {
+            "max_score": 3.2
+          },
+          "challenge": {
+            "max_score": 4.5
+          },
+          "block": {
+            "max_score": 5
+          }
+        }
+      },
+      "reasoning": "The current policy has 100% false positives because humans (avg score 3.02) are getting blocked with max_score=3.0. I'm raising all action thresholds to allow humans through while keeping bots suppressed. Setting allow threshold to 2.8 should let most humans pass, while the higher block threshold of 5.0 will still catch the highest-scoring bots (moderate/aggressive at 3.70)."
+    },
+    "accepted": false,
+    "reason": "No improvement: 75.0% → 13.5%",
+    "metricsBefore": {
+      "extraction": 0.25,
+      "suppression": 0.75,
+      "fpr": 1
+    },
+    "metricsAfter": {
+      "extraction": 0.8648648648648649,
+      "suppression": 0.1351351351351351,
+      "fpr": 0
+    }
   }
 ]

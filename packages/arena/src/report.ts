@@ -9,7 +9,7 @@ export function generateReport(report: RoundReport, outputPath: string): void {
 }
 
 function renderReportHtml(report: RoundReport): string {
-  const { roundNumber, timestamp, metrics, redProposal, blueProposal, redValidation, blueValidation } = report;
+  const { roundNumber, timestamp, metrics, redProposal, blueProposal, redValidation, blueValidation, winner, winReason } = report;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -117,12 +117,46 @@ function renderReportHtml(report: RoundReport): string {
       font-style: italic;
       color: #1e40af;
     }
+    .winner-banner {
+      text-align: center;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .winner-red {
+      background: linear-gradient(135deg, #fecaca 0%, #fee2e2 100%);
+      color: #991b1b;
+      border: 2px solid #ef4444;
+    }
+    .winner-blue {
+      background: linear-gradient(135deg, #bfdbfe 0%, #dbeafe 100%);
+      color: #1e40af;
+      border: 2px solid #3b82f6;
+    }
+    .winner-draw {
+      background: linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%);
+      color: #374151;
+      border: 2px solid #9ca3af;
+    }
+    .winner-reason {
+      font-size: 1rem;
+      font-weight: normal;
+      margin-top: 0.5rem;
+      opacity: 0.8;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Bot Arena</h1>
     <p class="subtitle">Round ${roundNumber} &middot; ${new Date(timestamp).toLocaleString()}</p>
+
+    <div class="winner-banner winner-${winner}">
+      ${winner === 'red' ? '🔴 Red Wins' : winner === 'blue' ? '🔵 Blue Wins' : '⚪ Draw'}
+      <div class="winner-reason">${winReason}</div>
+    </div>
 
     <div class="card">
       <h2>Summary Metrics</h2>

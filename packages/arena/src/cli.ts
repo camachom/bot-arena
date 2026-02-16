@@ -129,6 +129,10 @@ program
         }
       }
 
+      const { winner, reason } = determineWinner(metrics);
+      const winnerLabel = winner === 'red' ? '🔴 Red' : winner === 'blue' ? '🔵 Blue' : '⚪ Draw';
+      console.log(`└─ Winner: ${winnerLabel} (${reason})`);
+
       // Get agent proposals
       let redProposal: AttackProfileProposal | undefined;
       let blueProposal: PolicyProposal | undefined;
@@ -223,6 +227,7 @@ program
       saveHistory(historyPath, history);
 
       // Generate report
+      const { winner: reportWinner, reason: winReason } = determineWinner(metrics);
       const report: RoundReport = {
         roundNumber: round,
         timestamp: metrics.timestamp,
@@ -233,6 +238,8 @@ program
         blueValidation,
         attackProfile: loadAttackProfile(attackProfilePath),
         policy: loadPolicy(policyPath),
+        winner: reportWinner,
+        winReason,
       };
 
       const reportPath = join(reportsDir, `round-${String(round).padStart(3, '0')}.html`);
@@ -253,6 +260,22 @@ program
     console.log('\nBot Arena Complete!');
   });
 
+function determineWinner(metrics: RoundMetrics): { winner: 'red' | 'blue' | 'draw'; reason: string } {
+  const { botExtractionRate, botSuppressionRate, falsePositiveRate } = metrics;
+
+  const blueConstrained = falsePositiveRate <= 0.01;
+
+  if (botExtractionRate > 0.5) {
+    return { winner: 'red', reason: `${(botExtractionRate * 100).toFixed(0)}% extraction` };
+  }
+
+  if (botSuppressionRate > 0.5 && blueConstrained) {
+    return { winner: 'blue', reason: `${(botSuppressionRate * 100).toFixed(0)}% suppression, ${(falsePositiveRate * 100).toFixed(1)}% FPR` };
+  }
+
+  return { winner: 'draw', reason: 'no clear advantage' };
+}
+
 function summarizeRedProposal(proposal: AttackProfileProposal): string {
   const changes: string[] = [];
   const c = proposal.changes;
@@ -271,9 +294,24 @@ function summarizeBlueProposal(proposal: PolicyProposal): string {
 
   if (c.features) {
     for (const [key, val] of Object.entries(c.features)) {
-      if (val && 'weight' in val) {
-        changes.push(`${key} weight→${val.weight}`);
+      if (val && typeof val === 'object') {
+        if ('weight' in val) changes.push(`${key} weight→${val.weight}`);
+        if ('threshold' in val) changes.push(`${key} thresh→${val.threshold}`);
       }
+    }
+  }
+
+  if (c.actions) {
+    for (const [action, val] of Object.entries(c.actions)) {
+      if (val && typeof val === 'object' && 'max_score' in val) {
+        changes.push(`${action}→${val.max_score}`);
+      }
+    }
+  }
+
+  if (c.constraints) {
+    for (const [key, val] of Object.entries(c.constraints)) {
+      changes.push(`${key}→${val}`);
     }
   }
 

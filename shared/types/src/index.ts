@@ -161,6 +161,8 @@ export interface RoundReport {
   blueValidation?: ValidationResult;
   attackProfile: AttackProfile;
   policy: Policy;
+  winner: 'red' | 'blue' | 'draw';
+  winReason: string;
 }
 
 // Proposal History Entry for tracking previous attempts
